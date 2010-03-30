@@ -15,6 +15,7 @@ group :test do
   gem 'cucumber'
   gem 'cucumber-rails'
   gem 'database_cleaner'
-  gem 'webrat'
+  gem 'capybara'
+  # gem 'webrat'
   gem 'autotest-rails'
 end
