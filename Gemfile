@@ -4,6 +4,7 @@ gem 'rails', '2.3.5'
 gem 'haml'
 gem 'resource_controller'
 gem 'mysql'
+gem 'fastercsv'
 gem 'compass'
 gem 'compass-susy-plugin'
 
