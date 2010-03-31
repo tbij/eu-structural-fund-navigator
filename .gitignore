@@ -1,4 +1,5 @@
 bin
+db/schema.rb
 config/deploy.rb
 config/auth.yml
 config/passenger
