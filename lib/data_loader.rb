@@ -62,7 +62,6 @@ class DataLoader
       field_names.each do |field|
         normalized = field[0]
         original = field[1]
-        raise raw.inspect
         value = raw.send(original)
         record.morph(normalized, value)
       end

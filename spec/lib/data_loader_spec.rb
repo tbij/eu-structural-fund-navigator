@@ -31,25 +31,32 @@ describe DataLoader do
     field_names.second.should == [:project_title, :tytu_projektu]
     field_names.last.should == [:program_name, :program_operacyjny]
   end
-=begin  
+
   it 'create a record for each row in fund file' do
     name = 'pl_in_progress_erdf.csv'
     fund_file = mock('fund_file', :parsed_data_file => name)
     file_name = RAILS_ROOT+'/data/pl/'+name
     IO.should_receive(:read).with(file_name).and_return pl_csv
+
     @loader.should_receive(:field_names).with(fund_file).and_return [
     [:beneficiary, :nazwa_beneficjenta],
-    [:project_title, :tytu_projektu],
+    [:project_title, :tytuł_projektu],
     [:program_name, :program_operacyjny]
     ]
 
     records = @loader.load_fund_file fund_file
     records.size.should == 2
     record = records.first
-    record.beneficiary.should == 'x'
-    record.program_name.should == 'y'
+    record.beneficiary.should == '" Enter "Ośrodek Edukacyjno - Szkoleniowy  Barbara Wolska'
+    record.project_title.should == 'Szansa 50+'
+    record.program_name.should == 'Program Operacyjny Kapitał Ludzki'
+
+    record = records.second
+    record.beneficiary.should == '"ARBOS" Irena Słabolepsza'
+    record.project_title.should == 'Rozwój firmy ARBOS poprzez zakup rębaka do drewna'
+    record.program_name.should == 'Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013'
   end
-=end
+
   def fund_files
     file_name = RAILS_ROOT+'/data/structural_funds_master_scrape_0330_vl.csv'
     IO.should_receive(:read).with(file_name).and_return csv
@@ -63,12 +70,6 @@ describe DataLoader do
 |
   end
   
-  def pl_csv2
-%Q|"Nazwa beneficjenta","Tytuł projektu","Program Operacyjny","Działanie","Poddziałanie","Wartość ogółem","Dofinansowanie publiczne","Rok przyznania dofinansowania","Rok wypłacenia ostatniej raty"
-""" Enter ""Ośrodek Edukacyjno - Szkoleniowy  Barbara Wolska","Szansa 50+","Program Operacyjny Kapitał Ludzki","7.2. Przeciwdziałanie wykluczeniu i wzmocnienie sektora ekonomii społecznej","7.2.1 Aktywizacja zawodowa i społeczna osób zagrożonych wykluczeniem społecznym",175864,174166.93,2008,2009
-"""ARBOS"" Irena Słabolepsza","Rozwój firmy ARBOS poprzez zakup rębaka do drewna","Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013","Działanie 1.1. Rozwój mikroprzedsiębiorstw","Schemat I: Projekty inwestycyjne",48800,21000,2009,2009|
-  end
-
   def csv
 %Q|Country,Region,Assigned to,Excel/PDF,Down-loaded,Scrape Needed,Priority,"Data
 available
