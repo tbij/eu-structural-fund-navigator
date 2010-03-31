@@ -48,11 +48,24 @@ class DataLoader
     end
   end
 
+  def get_csv file_name
+    csv = case File.extname(file_name)
+    when '.xls'
+      convert file_name
+    when '.csv'
+      IO.read(file_name)
+    else
+      raise "unexpected file type: #{file_name}"
+    end
+  end
+
   def load_fund_file fund_file
     name = fund_file.parsed_data_file
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/data/#{country_code}/#{name}"
-    csv = IO.read(file_name)
+
+    csv = get_csv(file_name)
+
     raw_records = Morph.from_csv csv, 'RawRecord'
     
     field_names = field_names(fund_file)

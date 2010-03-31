@@ -6,9 +6,31 @@ describe DataLoader do
     @loader = DataLoader.new
   end
 
-  it 'should convert xls to csv' do
-    converted = @loader.convert(RAILS_ROOT+'/data/pl_in_progress_erdf.xls')
-    converted.should == pl_csv
+  describe 'when getting csv' do
+    it 'should convert xls to csv' do
+      converted = @loader.convert(RAILS_ROOT+'/data/pl_in_progress_erdf.xls')
+      converted.should == pl_csv
+    end
+
+    it 'convert an xls file to csv' do
+      name = 'pl_in_progress_erdf.xls'
+      file_name = RAILS_ROOT+'/data/pl/'+name
+      @loader.should_receive(:convert).with(file_name).and_return pl_csv
+      @loader.get_csv file_name
+    end
+
+    it 'should return contents of a csv file' do
+      name = 'pl_in_progress_erdf.csv'
+      file_name = RAILS_ROOT+'/data/pl/'+name
+      IO.should_receive(:read).with(file_name).and_return pl_csv
+      @loader.get_csv file_name
+    end
+    
+    it 'should raise exception if not a csv or xls file' do
+      name = 'pl_in_progress_erdf.doc'
+      file_name = RAILS_ROOT+'/data/pl/'+name
+      lambda { @loader.get_csv(file_name) }.should raise_exception      
+    end
   end
 
   it 'should create method name without unicode' do
@@ -36,8 +58,8 @@ describe DataLoader do
     name = 'pl_in_progress_erdf.csv'
     fund_file = mock('fund_file', :parsed_data_file => name)
     file_name = RAILS_ROOT+'/data/pl/'+name
-    IO.should_receive(:read).with(file_name).and_return pl_csv
 
+    @loader.should_receive(:get_csv).with(file_name).and_return pl_csv
     @loader.should_receive(:field_names).with(fund_file).and_return [
     [:beneficiary, :nazwa_beneficjenta],
     [:project_title, :tytuł_projektu],
