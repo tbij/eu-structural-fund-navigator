@@ -103,6 +103,15 @@ describe DataLoader do
     field_names.last.should == [:program_name, :program_operacyjny]
   end
 
+  describe 'when parsed data file not present' do
+    it 'should return nil for load_fund_file' do  
+      fund_file = mock(:parsed_data_file => '')
+      @loader.should_not_receive(:get_csv)
+      records = @loader.load_fund_file fund_file
+      # records.should be_nil
+    end
+  end
+
   describe 'when creating records' do
     before do
       name = 'pl_in_progress_erdf.csv'

@@ -69,7 +69,8 @@ class DataLoader
   def load_fund_files file_name
     csv = IO.read(file_name)
     csv.sub!('Excel/PDF','Excel_or_PDF')
-    Morph.from_csv csv, 'FundFile'
+    fund_files = Morph.from_csv(csv, 'FundFile')
+    fund_files.select {|f| !f.parsed_data_file.blank? }
   end
 
   def field_names fund_file
@@ -110,6 +111,7 @@ rake db:test:clone_structure|
 
   def load_fund_file fund_file
     name = fund_file.parsed_data_file
+    return nil if name.blank?
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/data/#{country_code}/#{name}"
 
