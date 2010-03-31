@@ -19,7 +19,8 @@ class DataLoader
   end
   
   def reset_database fund_file
-    migration(fund_file).each_line do |line|
+    records = load_fund_file(fund_file)
+    migration(records.first).each_line do |line|
       cmd line.strip
     end
   end
@@ -88,14 +89,15 @@ class DataLoader
   def migration record
     attributes = attribute_names(record)
     attributes = attributes.collect {|a| "#{a.to_s}:string" }.join(' ')
-%Q|
-./script/destroy scaffold_resource FundItem
+%Q|./script/destroy scaffold_resource FundItem
 ./script/generate scaffold_resource FundItem #{attributes}
+rake db:migrate
 rake db:reset
-|    
+rake db:test:clone_structure|    
   end
 
   def get_csv file_name
+    puts 'opening ' + file_name
     csv = case File.extname(file_name)
     when '.xls'
       convert file_name
@@ -122,6 +124,7 @@ rake db:reset
       record.country = fund_file.country
       record.region = fund_file.region
       record.program = fund_file.program
+
       field_names.each do |field|
         normalized = field[0]
         original = field[1]

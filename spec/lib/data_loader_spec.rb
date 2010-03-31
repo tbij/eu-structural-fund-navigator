@@ -21,7 +21,9 @@ describe DataLoader do
     it 'should run scaffold generate and reset db' do
       fund_file = mock('fund_file')
       migration_cmds = "first\nsecond"
-      @loader.should_receive(:migration).with(fund_file).and_return migration_cmds
+      record = mock('record')
+      @loader.should_receive(:load_fund_file).with(fund_file).and_return [record]
+      @loader.should_receive(:migration).with(record).and_return migration_cmds
       @loader.should_receive(:cmd).with('first')
       @loader.should_receive(:cmd).with('second')
       @loader.reset_database fund_file 
@@ -146,11 +148,11 @@ describe DataLoader do
     it 'should create migration' do
       records = @loader.load_fund_file @fund_file
 
-      @loader.migration(records.first).should == %Q|
-./script/destroy scaffold_resource FundItem
+      @loader.migration(records.first).should == %Q|./script/destroy scaffold_resource FundItem
 ./script/generate scaffold_resource FundItem country:string region:string program:string beneficiary:string project_title:string program_name:string
+rake db:migrate
 rake db:reset
-|
+rake db:test:clone_structure|    
     end
   end
 
