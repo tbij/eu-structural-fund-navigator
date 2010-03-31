@@ -78,6 +78,9 @@ class DataLoader
         value = raw.send(original)
         record.morph(normalized, value)
       end
+      record.country = fund_file.country
+      record.region = fund_file.region
+      record.program = fund_file.program
       record
     end
   end

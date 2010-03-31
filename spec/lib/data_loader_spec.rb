@@ -43,6 +43,8 @@ describe DataLoader do
     fund_file = fund_files.first
     fund_file.class.name.should == 'Morph::FundFile'
     fund_file.country.should == 'POLAND'
+    fund_file.region.should == 'All regions'
+    fund_file.program.should == 'ERDF'
     fund_file.parsed_data_file.should == 'pl_in_progress_erdf.csv'
   end
   
@@ -56,7 +58,12 @@ describe DataLoader do
 
   it 'create a record for each row in fund file' do
     name = 'pl_in_progress_erdf.csv'
-    fund_file = mock('fund_file', :parsed_data_file => name)
+    fund_file = mock('fund_file',
+        :parsed_data_file => name,
+        :country => 'POLAND',
+        :region => 'All regions',
+        :program => 'ERDF'
+        )
     file_name = RAILS_ROOT+'/data/pl/'+name
 
     @loader.should_receive(:get_csv).with(file_name).and_return pl_csv
@@ -69,11 +76,15 @@ describe DataLoader do
     records = @loader.load_fund_file fund_file
     records.size.should == 2
     record = records.first
+    record.country.should == 'POLAND'
+    record.region.should == 'All regions'
+    record.program.should == 'ERDF'
     record.beneficiary.should == '" Enter "Ośrodek Edukacyjno - Szkoleniowy  Barbara Wolska'
     record.project_title.should == 'Szansa 50+'
     record.program_name.should == 'Program Operacyjny Kapitał Ludzki'
 
     record = records.second
+    record.country.should == 'POLAND'
     record.beneficiary.should == '"ARBOS" Irena Słabolepsza'
     record.project_title.should == 'Rozwój firmy ARBOS poprzez zakup rębaka do drewna'
     record.program_name.should == 'Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013'
