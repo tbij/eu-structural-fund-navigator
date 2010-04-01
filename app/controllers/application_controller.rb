@@ -10,6 +10,9 @@ class ApplicationController < ActionController::Base
   # Scrub sensitive parameters from your log
   # filter_parameter_logging :password
 
+  def home
+  end
+
   private
   def authenticate
     auth = YAML.load_file(RAILS_ROOT+'/config/auth.yml')
