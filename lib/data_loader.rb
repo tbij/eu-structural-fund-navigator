@@ -113,7 +113,7 @@ rake db:test:clone_structure|
     name = fund_file.parsed_data_file
     return nil if name.blank?
     country_code = name[0..1]
-    file_name = "#{RAILS_ROOT}/data/#{country_code}/#{name}"
+    file_name = "#{RAILS_ROOT}/DATA/#{country_code}/#{name}"
 
     csv = get_csv(file_name)
 

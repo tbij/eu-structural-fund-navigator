@@ -8,7 +8,7 @@ describe DataLoader do
   
   describe 'when loading database' do
     it 'should reset database using first fund file record attributes, then populate database' do
-      file_name = RAILS_ROOT+'/data/structural_funds_master_scrape_0330_vl.csv'
+      file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
       first_fund = mock('first_fund')
       fund_files = mock('fund_files', :first => first_fund)
       @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files
@@ -61,27 +61,27 @@ describe DataLoader do
 
   describe 'when getting csv' do
     it 'should convert xls to csv' do
-      converted = @loader.convert(RAILS_ROOT+'/data/pl_in_progress_erdf.xls')
+      converted = @loader.convert(RAILS_ROOT+'/spec/fixtures/data/pl/pl_in_progress_erdf.xls')
       converted.should == pl_csv
     end
 
     it 'convert an xls file to csv' do
       name = 'pl_in_progress_erdf.xls'
-      file_name = RAILS_ROOT+'/data/pl/'+name
+      file_name = RAILS_ROOT+'/DATA/pl/'+name
       @loader.should_receive(:convert).with(file_name).and_return pl_csv
       @loader.get_csv file_name
     end
 
     it 'should return contents of a csv file' do
       name = 'pl_in_progress_erdf.csv'
-      file_name = RAILS_ROOT+'/data/pl/'+name
+      file_name = RAILS_ROOT+'/DATA/pl/'+name
       IO.should_receive(:read).with(file_name).and_return pl_csv
       @loader.get_csv file_name
     end
     
     it 'should raise exception if not a csv or xls file' do
       name = 'pl_in_progress_erdf.doc'
-      file_name = RAILS_ROOT+'/data/pl/'+name
+      file_name = RAILS_ROOT+'/DATA/pl/'+name
       lambda { @loader.get_csv(file_name) }.should raise_exception      
     end
   end
@@ -121,7 +121,7 @@ describe DataLoader do
           :region => 'All regions',
           :program => 'ERDF'
           )
-      file_name = RAILS_ROOT+'/data/pl/'+name
+      file_name = RAILS_ROOT+'/DATA/pl/'+name
   
       @loader.stub!(:get_csv).with(file_name).and_return pl_csv
       @loader.stub!(:field_names).with(@fund_file).and_return [
@@ -166,7 +166,7 @@ rake db:test:clone_structure|
   end
 
   def fund_files
-    file_name = RAILS_ROOT+'/data/structural_funds_master_scrape_0330_vl.csv'
+    file_name = RAILS_ROOT+'/DATA/master.csv'
     IO.should_receive(:read).with(file_name).and_return master_csv
     fund_files = @loader.load_fund_files file_name
   end
