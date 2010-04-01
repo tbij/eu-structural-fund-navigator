@@ -1,4 +1,5 @@
 bin
+script/db.rb
 db/schema.rb
 config/auth.yml
 config/passenger
@@ -13,6 +14,7 @@ doc
 log
 rerun.txt
 data
+DATA
 config/scalpel.yml
 \#*\#
 public/www*
