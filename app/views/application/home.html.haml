@@ -1,1 +1,15 @@
 %h1 EU Funds
+
+%table
+  %tr
+    %td Country
+    %td{:style => 'text-align: right;'} No. of Items
+  - @items_by_country.each do |country, count|
+    %tr
+      %td
+        = country
+      %td{:style => 'text-align: right;'}
+        = number_with_delimiter count
+  %tr
+    %td Total
+    %td{:style => 'text-align: right;'}= number_with_delimiter @total_items

@@ -71,7 +71,7 @@ namespace :deploy do
 
   task :update_data, :roles => :app do
     run "if [ -d #{shared_path}/DATA ]; then cd #{shared_path}/DATA ; git pull ; else cd #{shared_path} ; git clone git@github.com:tbij/DATA.git ; fi"
-    run "if [ -d #{current_path}/DATA ]; then ; else cd #{current_path} ; ln -s #{shared_path}/DATA DATA ; fi"
+    run "if [ -d #{current_path}/DATA ]; then echo data_symlinked ; else cd #{current_path} ; ln -s #{shared_path}/DATA DATA ; fi"
   end  
 
   task :site_setup, :roles => :app do

@@ -9,8 +9,8 @@ describe DataLoader do
   describe 'when loading database' do
     it 'should reset database using first fund file record attributes, then populate database' do
       file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
-      first_fund = mock('first_fund')
-      fund_files = mock('fund_files', :first => first_fund)
+      first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
+      fund_files = [ first_fund ]
       @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files
       
       @loader.should_receive(:reset_database).with(first_fund)
@@ -68,6 +68,7 @@ describe DataLoader do
     it 'convert an xls file to csv' do
       name = 'pl_in_progress_erdf.xls'
       file_name = RAILS_ROOT+'/DATA/pl/'+name
+      File.should_receive(:exist?).with(file_name).and_return true
       @loader.should_receive(:convert).with(file_name).and_return pl_csv
       @loader.get_csv file_name
     end
@@ -75,6 +76,7 @@ describe DataLoader do
     it 'should return contents of a csv file' do
       name = 'pl_in_progress_erdf.csv'
       file_name = RAILS_ROOT+'/DATA/pl/'+name
+      File.should_receive(:exist?).with(file_name).and_return true
       IO.should_receive(:read).with(file_name).and_return pl_csv
       @loader.get_csv file_name
     end
@@ -82,6 +84,7 @@ describe DataLoader do
     it 'should raise exception if not a csv or xls file' do
       name = 'pl_in_progress_erdf.doc'
       file_name = RAILS_ROOT+'/DATA/pl/'+name
+      File.should_receive(:exist?).with(file_name).and_return true
       lambda { @loader.get_csv(file_name) }.should raise_exception      
     end
   end
@@ -93,6 +96,7 @@ describe DataLoader do
     fund_file.region.should == 'All regions'
     fund_file.program.should == 'ERDF'
     fund_file.parsed_data_file.should == 'pl_in_progress_erdf.csv'
+    fund_file.original_file_name.should == 'Lista_beneficjentow_FE_zakonczone_030110.xls'
   end
   
   it 'should identify fields from fund_files' do
@@ -119,7 +123,8 @@ describe DataLoader do
           :parsed_data_file => name,
           :country => 'POLAND',
           :region => 'All regions',
-          :program => 'ERDF'
+          :program => 'ERDF',
+          :orginal_file_name => 'orginal_file_name'
           )
       file_name = RAILS_ROOT+'/DATA/pl/'+name
   
@@ -151,17 +156,19 @@ describe DataLoader do
     
     it 'should return attribute names' do
       records = @loader.load_fund_file @fund_file
-      @loader.attribute_names(records.first).should == [:country, :region, :program, :beneficiary, :project_title, :program_name]
+      @loader.attribute_names(records.first).should == [:country, :region, :program, :orginal_file_name, :beneficiary, :project_title, :program_name]
     end
     
     it 'should create migration' do
       records = @loader.load_fund_file @fund_file
 
-      @loader.migration(records.first).should == %Q|./script/destroy scaffold_resource FundItem
-./script/generate scaffold_resource FundItem country:string region:string program:string beneficiary:string project_title:string program_name:string
-rake db:migrate
-rake db:reset
-rake db:test:clone_structure|    
+      lines = @loader.migration(records.first).split("\n")
+      lines[0].should == %Q|./script/destroy scaffold_resource FundItem|
+      lines[1].should == %Q|./script/generate scaffold_resource FundItem country:string region:string program:string orginal_file_name:string beneficiary:string project_title:string program_name:string|
+      lines[2].should == %Q|rake db:migrate|
+      lines[3].should == %Q|rake db:reset|
+      lines[4].should == %Q|rm spec/controllers/fund_items_controller_spec.rb|
+      lines[5].should == %Q|rake db:test:clone_structure|    
     end
   end
 

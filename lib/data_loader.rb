@@ -9,6 +9,7 @@ class DataLoader
 
   def load_database file_name
     fund_files = load_fund_files file_name
+    fund_files.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file }
     reset_database fund_files.first
     populate_database fund_files
   end
@@ -28,8 +29,12 @@ class DataLoader
   def populate_database fund_files
     fund_files.each do |fund_file|
       records = load_fund_file fund_file
-      records.each do |record|
-        save_record record
+      if records
+        records.each do |record|
+          save_record record
+        end
+      else
+        puts "ERROR: no records for #{fund_file.parsed_data_file}"
       end
     end
   end
@@ -61,26 +66,31 @@ class DataLoader
   end
 
   def convert_to_morph_method_name label
-    name = label.to_s.downcase.tr('()\-*',' ').gsub('%','percentage').strip.chomp(':').strip.gsub(/\s/,'_').squeeze('_')
+    name = label.to_s.downcase.tr('()\-*',' ').gsub('%','percentage').gsub("'",'_').gsub('/','_').strip.chomp(':').strip.gsub(/\s/,'_').squeeze('_')
     name = '_'+name if name =~ /^\d/
+    name.sub!('operación','operacion')
     name
   end
 
   def load_fund_files file_name
     csv = IO.read(file_name)
     csv.sub!('Excel/PDF','Excel_or_PDF')
+    csv.sub!('EU/Nation/Region','EU_or_Nation_or_Region')
+    csv.sub!('Sub-region / ','Sub-region_or_')
     fund_files = Morph.from_csv(csv, 'FundFile')
-    fund_files.select {|f| !f.parsed_data_file.blank? }
+    fund_files.select {|f| !f.parsed_data_file.blank? && !f.parsed_data_file[/no data in pdf/] && !f.parsed_data_file[/^it_/] && !f.parsed_data_file[/pl_allregions_esf.csv/] }
   end
 
   def field_names fund_file
     attributes = fund_file.class.morph_attributes
     fields = attributes.select{|a| a.to_s[/_field$/]}
-    fields.collect do |field|
+    field_names = fields.collect do |field|
       normalized = field.to_s.sub(/_field$/,'').to_sym
-      original = convert_to_morph_method_name(fund_file.send(field)).to_sym
+      original = convert_to_morph_method_name(fund_file.send(field))
+      original = original.to_sym unless original.blank?
       [normalized, original]
     end
+    field_names.select {|x| !x[1].blank?}
   end
   
   def attribute_names record
@@ -94,10 +104,12 @@ class DataLoader
 ./script/generate scaffold_resource FundItem #{attributes}
 rake db:migrate
 rake db:reset
+rm spec/controllers/fund_items_controller_spec.rb
 rake db:test:clone_structure|    
   end
 
   def get_csv file_name
+    return nil if !File.exist?(file_name)
     puts 'opening ' + file_name
     csv = case File.extname(file_name)
     when '.xls'
@@ -117,21 +129,35 @@ rake db:test:clone_structure|
 
     csv = get_csv(file_name)
 
-    raw_records = Morph.from_csv csv, 'RawRecord'
-    
+    return nil unless csv
+    begin
+      raw_records = Morph.from_csv csv, 'RawRecord'
+    rescue Exception => e
+      puts e.class.name
+      puts e.to_s
+      return nil
+    end
+
     field_names = field_names(fund_file)
-    
+
     raw_records.collect do |raw|
       record = FundRecord.new
       record.country = fund_file.country
       record.region = fund_file.region
       record.program = fund_file.program
+      record.orginal_file_name = fund_file.orginal_file_name
 
       field_names.each do |field|
         normalized = field[0]
         original = field[1]
-        value = raw.send(original)
-        record.morph(normalized, value)
+        begin
+          value = raw.send(original)
+          record.morph(normalized, value)
+        rescue Exception => e
+          puts e.class.name
+          puts e.to_s
+          puts raw.inspect          
+        end
       end
       record
     end

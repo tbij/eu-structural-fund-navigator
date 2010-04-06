@@ -11,6 +11,8 @@ class ApplicationController < ActionController::Base
   # filter_parameter_logging :password
 
   def home
+    @items_by_country = FundItem.count(:group => :country)
+    @total_items = FundItem.count
   end
 
   private
