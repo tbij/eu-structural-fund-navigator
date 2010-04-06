@@ -36,8 +36,37 @@ class DataLoader
         puts "ERROR: no records for #{fund_file.parsed_data_file}"
       end
     end
+
   end
-  
+
+  def save_fund_file fund_file
+    direct_link = if !fund_file.direct_link_to_pdf.blank?
+      fund_file.direct_link_to_pdf
+    elsif !fund_file.direct_link_to_excel.blank?
+      fund_file.direct_link_to_excel
+    elsif !fund_file.direct_link_to_html.blank?
+      fund_file.direct_link_to_html
+    elsif !fund_file.direct_link_to_doc.blank?
+      fund_file.direct_link_to_doc
+    else
+      fund_file.uri_to_landing_page
+    end
+    attributes = {
+        :country => fund_file.country,
+        :region => fund_file.region,
+        :program => fund_file.program,
+        :sub_program => fund_file.sub_program_information,
+        :original_file_name => fund_file.original_file_name,
+        :parsed_data_file => fund_file.parsed_data_file,
+        :direct_link => direct_link
+    }
+    fund_file_model.create attributes
+  end
+
+  def fund_file_model
+    eval('FundFile')
+  end
+
   def save_record record
     record_model.create record.morph_attributes
   end
@@ -98,7 +127,7 @@ class DataLoader
   
   def fund_file_migration
     %Q|./script/destroy scaffold_resource FundFile\n| +
-    %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string|
+    %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
   end
 
   def fund_item_migration record
@@ -112,7 +141,7 @@ rm spec/controllers/fund_items_controller_spec.rb
 rake db:test:clone_structure|    
   end
 
-  def get_csv file_name
+  def csv_from_file file_name
     return nil if !File.exist?(file_name)
     puts 'opening ' + file_name
     csv = case File.extname(file_name)
@@ -131,7 +160,7 @@ rake db:test:clone_structure|
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/DATA/#{country_code}/#{name}"
 
-    csv = get_csv(file_name)
+    csv = csv_from_file(file_name)
 
     return nil unless csv
     begin

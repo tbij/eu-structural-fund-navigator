@@ -4,9 +4,45 @@ describe DataLoader do
   
   before :each do
     @loader = DataLoader.new
+    @data_file = 'pl_in_progress_erdf.csv'
+
+    @country = 'POLAND'
+    @region = 'All regions'
+    @program = 'ERDF'
+    @sub_program = 'Media'
+    @original_file = 'original_file_name'
+    @direct_uri = 'http://example.com/'
+
+    @fund_file = mock('fund_file',
+        :parsed_data_file => @data_file,
+        :country => @country,
+        :region => @region,
+        :program => @program,
+        :sub_program_information => @sub_program,
+        :original_file_name => @original_file,
+        :direct_link_to_pdf => @direct_uri
+        )
   end
   
   describe 'when loading database' do
+    it 'should save fund file' do
+      model = mock('FundFileClass')
+      @loader.should_receive(:fund_file_model).and_return model
+      fund_file_obj = mock('fund_file_obj')
+
+      attributes = {
+        :country => @country,
+        :region => @region,
+        :program => @program,
+        :sub_program => @sub_program,
+        :original_file_name => @original_file,
+        :parsed_data_file => @data_file,
+        :direct_link => @direct_uri
+      }
+      model.should_receive(:create).with(attributes).and_return(fund_file_obj)
+      @loader.save_fund_file(@fund_file).should == fund_file_obj
+    end
+
     it 'should reset database using first fund file record attributes, then populate database' do
       file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
       first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
@@ -74,7 +110,7 @@ describe DataLoader do
       file_name = RAILS_ROOT+'/DATA/pl/'+name
       File.should_receive(:exist?).with(file_name).and_return true
       @loader.should_receive(:convert).with(file_name).and_return pl_csv
-      @loader.get_csv file_name
+      @loader.csv_from_file file_name
     end
 
     it 'should return contents of a csv file' do
@@ -82,14 +118,14 @@ describe DataLoader do
       file_name = RAILS_ROOT+'/DATA/pl/'+name
       File.should_receive(:exist?).with(file_name).and_return true
       IO.should_receive(:read).with(file_name).and_return pl_csv
-      @loader.get_csv file_name
+      @loader.csv_from_file file_name
     end
     
     it 'should raise exception if not a csv or xls file' do
       name = 'pl_in_progress_erdf.doc'
       file_name = RAILS_ROOT+'/DATA/pl/'+name
       File.should_receive(:exist?).with(file_name).and_return true
-      lambda { @loader.get_csv(file_name) }.should raise_exception      
+      lambda { @loader.csv_from_file(file_name) }.should raise_exception      
     end
   end
 
@@ -114,7 +150,7 @@ describe DataLoader do
   describe 'when parsed data file not present' do
     it 'should return nil for load_fund_file' do  
       fund_file = mock(:parsed_data_file => '')
-      @loader.should_not_receive(:get_csv)
+      @loader.should_not_receive(:csv_from_file)
       records = @loader.load_fund_file fund_file
       # records.should be_nil
     end
@@ -122,17 +158,9 @@ describe DataLoader do
 
   describe 'when creating records' do
     before do
-      name = 'pl_in_progress_erdf.csv'
-      @fund_file = mock('fund_file',
-          :parsed_data_file => name,
-          :country => 'POLAND',
-          :region => 'All regions',
-          :program => 'ERDF',
-          :original_file_name => 'original_file_name'
-          )
-      file_name = RAILS_ROOT+'/DATA/pl/'+name
+      file_name = RAILS_ROOT+'/DATA/pl/'+@data_file
   
-      @loader.stub!(:get_csv).with(file_name).and_return pl_csv
+      @loader.stub!(:csv_from_file).with(file_name).and_return pl_csv
       @loader.stub!(:field_names).with(@fund_file).and_return [
       [:beneficiary, :nazwa_beneficjenta],
       [:project_title, :tytuł_projektu],
@@ -166,7 +194,7 @@ describe DataLoader do
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundFile|
-      lines[1].should == %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[1].should == %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
     end
 
     it 'should create fund_item_migration' do
