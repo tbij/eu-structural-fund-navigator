@@ -20,12 +20,16 @@ describe DataLoader do
     
     it 'should run scaffold generate and reset db' do
       fund_file = mock('fund_file')
-      migration_cmds = "first\nsecond"
+      file_migration_cmds = "first\nsecond"
+      migration_cmds = "third\nfourth"
       record = mock('record')
       @loader.should_receive(:load_fund_file).with(fund_file).and_return [record]
-      @loader.should_receive(:migration).with(record).and_return migration_cmds
+      @loader.should_receive(:fund_file_migration).and_return file_migration_cmds
+      @loader.should_receive(:fund_item_migration).with(record).and_return migration_cmds
       @loader.should_receive(:cmd).with('first')
       @loader.should_receive(:cmd).with('second')
+      @loader.should_receive(:cmd).with('third')
+      @loader.should_receive(:cmd).with('fourth')
       @loader.reset_database fund_file 
     end
     
@@ -159,10 +163,16 @@ describe DataLoader do
       @loader.attribute_names(records.first).should == [:country, :region, :program, :original_file_name, :beneficiary, :project_title, :program_name]
     end
     
-    it 'should create migration' do
+    it 'should create fund_file_migration' do
+      lines = @loader.fund_file_migration.split("\n")
+      lines[0].should == %Q|./script/destroy scaffold_resource FundFile|
+      lines[1].should == %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string|
+    end
+
+    it 'should create fund_item_migration' do
       records = @loader.load_fund_file @fund_file
 
-      lines = @loader.migration(records.first).split("\n")
+      lines = @loader.fund_item_migration(records.first).split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundItem|
       lines[1].should == %Q|./script/generate scaffold_resource FundItem country:string region:string program:string original_file_name:string beneficiary:string project_title:string program_name:string|
       lines[2].should == %Q|rake db:migrate|

@@ -21,9 +21,8 @@ class DataLoader
   
   def reset_database fund_file
     records = load_fund_file(fund_file)
-    migration(records.first).each_line do |line|
-      cmd line.strip
-    end
+    fund_file_migration.each_line {|line| cmd line.strip }
+    fund_item_migration(records.first).each_line {|line| cmd line.strip }
   end
   
   def populate_database fund_files
@@ -97,7 +96,12 @@ class DataLoader
     record.class.morph_attributes
   end
   
-  def migration record
+  def fund_file_migration
+    %Q|./script/destroy scaffold_resource FundFile\n| +
+    %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string|
+  end
+
+  def fund_item_migration record
     attributes = attribute_names(record)
     attributes = attributes.collect {|a| "#{a.to_s}:string" }.join(' ')
 %Q|./script/destroy scaffold_resource FundItem
