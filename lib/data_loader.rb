@@ -9,7 +9,7 @@ class DataLoader
 
   def load_database file_name
     fund_files = load_fund_files file_name
-    fund_files.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file }
+    fund_files.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
     reset_database fund_files.first
     populate_database fund_files
   end
@@ -20,14 +20,15 @@ class DataLoader
   end
   
   def reset_database fund_file
-    records = load_fund_file(fund_file)
+    records = load_fund_file(fund_file, nil)
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(records.first).each_line {|line| cmd line.strip }
   end
   
   def populate_database fund_files
     fund_files.each do |fund_file|
-      records = load_fund_file fund_file
+      saved_fund_file = save_fund_file fund_file 
+      records = load_fund_file fund_file, saved_fund_file
       if records
         records.each do |record|
           save_record record
@@ -132,7 +133,7 @@ class DataLoader
 
   def fund_item_migration record
     attributes = attribute_names(record)
-    attributes = attributes.collect {|a| "#{a.to_s}:string" }.join(' ')
+    attributes = attributes.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }.join(' ')
 %Q|./script/destroy scaffold_resource FundItem
 ./script/generate scaffold_resource FundItem #{attributes}
 rake db:migrate
@@ -154,7 +155,7 @@ rake db:test:clone_structure|
     end
   end
 
-  def load_fund_file fund_file
+  def load_fund_file fund_file, saved_fund_file
     name = fund_file.parsed_data_file
     return nil if name.blank?
     country_code = name[0..1]
@@ -175,10 +176,7 @@ rake db:test:clone_structure|
 
     raw_records.collect do |raw|
       record = FundRecord.new
-      record.country = fund_file.country
-      record.region = fund_file.region
-      record.program = fund_file.program
-      record.original_file_name = fund_file.original_file_name
+      record.fund_file_id = saved_fund_file.id if saved_fund_file
 
       field_names.each do |field|
         normalized = field[0]

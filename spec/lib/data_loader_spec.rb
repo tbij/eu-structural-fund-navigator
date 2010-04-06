@@ -22,6 +22,8 @@ describe DataLoader do
         :original_file_name => @original_file,
         :direct_link_to_pdf => @direct_uri
         )
+    @saved_fund_file_id = 'example_id'
+    @saved_fund_file = mock('saved_fund_file', :id => @saved_fund_file_id)
   end
   
   describe 'when loading database' do
@@ -59,7 +61,7 @@ describe DataLoader do
       file_migration_cmds = "first\nsecond"
       migration_cmds = "third\nfourth"
       record = mock('record')
-      @loader.should_receive(:load_fund_file).with(fund_file).and_return [record]
+      @loader.should_receive(:load_fund_file).with(fund_file, nil).and_return [record]
       @loader.should_receive(:fund_file_migration).and_return file_migration_cmds
       @loader.should_receive(:fund_item_migration).with(record).and_return migration_cmds
       @loader.should_receive(:cmd).with('first')
@@ -79,8 +81,13 @@ describe DataLoader do
       record3 = mock('record3')
       records = [record]
       records2 = [record2, record3]
-      @loader.should_receive(:load_fund_file).with(fund_file).and_return records
-      @loader.should_receive(:load_fund_file).with(fund_file2).and_return records2
+
+      saved_fund_file2 = mock('saved_fund_file')
+      @loader.should_receive(:save_fund_file).with(fund_file).and_return @saved_fund_file
+      @loader.should_receive(:save_fund_file).with(fund_file2).and_return saved_fund_file2
+      
+      @loader.should_receive(:load_fund_file).with(fund_file, @saved_fund_file).and_return records
+      @loader.should_receive(:load_fund_file).with(fund_file2, saved_fund_file2).and_return records2
       
       @loader.should_receive(:save_record).with(record)
       @loader.should_receive(:save_record).with(record2)
@@ -151,7 +158,7 @@ describe DataLoader do
     it 'should return nil for load_fund_file' do  
       fund_file = mock(:parsed_data_file => '')
       @loader.should_not_receive(:csv_from_file)
-      records = @loader.load_fund_file fund_file
+      records = @loader.load_fund_file fund_file, @saved_fund_file
       # records.should be_nil
     end
   end
@@ -168,27 +175,25 @@ describe DataLoader do
       ]
     end
 
-    it 'should create a record for each row in fund file' do  
-      records = @loader.load_fund_file @fund_file
+    it 'should create a record for each row in fund file' do
+      records = @loader.load_fund_file @fund_file, @saved_fund_file
       records.size.should == 2
       record = records.first
-      record.country.should == 'POLAND'
-      record.region.should == 'All regions'
-      record.program.should == 'ERDF'
+      record.fund_file_id.should == @saved_fund_file_id
       record.beneficiary.should == '" Enter "Ośrodek Edukacyjno - Szkoleniowy  Barbara Wolska'
       record.project_title.should == 'Szansa 50+'
       record.program_name.should == 'Program Operacyjny Kapitał Ludzki'
   
       record = records.second
-      record.country.should == 'POLAND'
+      record.fund_file_id.should == @saved_fund_file_id
       record.beneficiary.should == '"ARBOS" Irena Słabolepsza'
       record.project_title.should == 'Rozwój firmy ARBOS poprzez zakup rębaka do drewna'
       record.program_name.should == 'Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013'
     end
     
     it 'should return attribute names' do
-      records = @loader.load_fund_file @fund_file
-      @loader.attribute_names(records.first).should == [:country, :region, :program, :original_file_name, :beneficiary, :project_title, :program_name]
+      records = @loader.load_fund_file @fund_file, @saved_fund_file
+      @loader.attribute_names(records.first).should == [:fund_file_id, :beneficiary, :project_title, :program_name]
     end
     
     it 'should create fund_file_migration' do
@@ -198,11 +203,11 @@ describe DataLoader do
     end
 
     it 'should create fund_item_migration' do
-      records = @loader.load_fund_file @fund_file
+      records = @loader.load_fund_file @fund_file, @saved_fund_file
 
       lines = @loader.fund_item_migration(records.first).split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundItem|
-      lines[1].should == %Q|./script/generate scaffold_resource FundItem country:string region:string program:string original_file_name:string beneficiary:string project_title:string program_name:string|
+      lines[1].should == %Q|./script/generate scaffold_resource FundItem fund_file_id:integer beneficiary:string project_title:string program_name:string|
       lines[2].should == %Q|rake db:migrate|
       lines[3].should == %Q|rake db:reset|
       lines[4].should == %Q|rm spec/controllers/fund_items_controller_spec.rb|
