@@ -124,7 +124,7 @@ describe DataLoader do
           :country => 'POLAND',
           :region => 'All regions',
           :program => 'ERDF',
-          :orginal_file_name => 'orginal_file_name'
+          :original_file_name => 'original_file_name'
           )
       file_name = RAILS_ROOT+'/DATA/pl/'+name
   
@@ -156,7 +156,7 @@ describe DataLoader do
     
     it 'should return attribute names' do
       records = @loader.load_fund_file @fund_file
-      @loader.attribute_names(records.first).should == [:country, :region, :program, :orginal_file_name, :beneficiary, :project_title, :program_name]
+      @loader.attribute_names(records.first).should == [:country, :region, :program, :original_file_name, :beneficiary, :project_title, :program_name]
     end
     
     it 'should create migration' do
@@ -164,7 +164,7 @@ describe DataLoader do
 
       lines = @loader.migration(records.first).split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundItem|
-      lines[1].should == %Q|./script/generate scaffold_resource FundItem country:string region:string program:string orginal_file_name:string beneficiary:string project_title:string program_name:string|
+      lines[1].should == %Q|./script/generate scaffold_resource FundItem country:string region:string program:string original_file_name:string beneficiary:string project_title:string program_name:string|
       lines[2].should == %Q|rake db:migrate|
       lines[3].should == %Q|rake db:reset|
       lines[4].should == %Q|rm spec/controllers/fund_items_controller_spec.rb|

@@ -4,12 +4,17 @@
   %tr
     %td Country
     %td{:style => 'text-align: right;'} No. of Items
+    %td{:style => 'text-align: right;'} No. of Files
   - @items_by_country.each do |country, count|
     %tr
       %td
         = country
       %td{:style => 'text-align: right;'}
         = number_with_delimiter count
+      %td{:style => 'text-align: right;'}
+        = number_with_delimiter @files_by_country[country]
   %tr
     %td Total
     %td{:style => 'text-align: right;'}= number_with_delimiter @total_items
+    %td{:style => 'text-align: right;'}= number_with_delimiter @total_files
+    

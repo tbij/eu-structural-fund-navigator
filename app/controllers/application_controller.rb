@@ -13,6 +13,12 @@ class ApplicationController < ActionController::Base
   def home
     @items_by_country = FundItem.count(:group => :country)
     @total_items = FundItem.count
+    countries = @items_by_country.keys
+    @files_by_country = countries.inject({}) do |hash, country|
+      hash[country] = FundItem.count_by_sql(%Q|select count(distinct(original_file_name)) from fund_items where country = "#{country}"|)
+      hash
+    end
+    @total_files = @files_by_country.values.sum
   end
 
   private

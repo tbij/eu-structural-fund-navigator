@@ -145,7 +145,7 @@ rake db:test:clone_structure|
       record.country = fund_file.country
       record.region = fund_file.region
       record.program = fund_file.program
-      record.orginal_file_name = fund_file.orginal_file_name
+      record.original_file_name = fund_file.original_file_name
 
       field_names.each do |field|
         normalized = field[0]
