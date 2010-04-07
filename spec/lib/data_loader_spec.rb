@@ -28,12 +28,18 @@ describe DataLoader do
   
   describe 'when loading database' do
     it 'should save fund file' do
-      model = mock('FundFileClass')
-      @loader.should_receive(:fund_file_model).and_return model
-      fund_file_obj = mock('fund_file_obj')
+      fund_file_model = mock('FundFileClass')
+      country_model = mock('CountryClass')
+      fund_file_country_model = mock('FundFileCountryClass')
+      
+      @loader.should_receive(:fund_file_model).and_return fund_file_model
+      @loader.should_receive(:country_model).and_return country_model
+      @loader.should_receive(:fund_file_country_model).and_return fund_file_country_model
+      country_obj = mock('country_obj', :id => 'country_id')
+      fund_file_obj = mock('fund_file_obj', :id => 'fund_file_id')
+      country_fund_file_obj = mock('country_fund_file_obj')
 
       attributes = {
-        :country => @country,
         :region => @region,
         :program => @program,
         :sub_program => @sub_program,
@@ -41,7 +47,17 @@ describe DataLoader do
         :parsed_data_file => @data_file,
         :direct_link => @direct_uri
       }
-      model.should_receive(:create).with(attributes).and_return(fund_file_obj)
+
+      fund_file_country_attributes = {
+        :country_id => country_obj.id,
+        :fund_file_id => fund_file_obj.id
+      }      
+      country_model.should_receive(:find_or_create_by_name).with(@country).and_return country_obj
+
+      fund_file_model.should_receive(:create).with(attributes).and_return(fund_file_obj)
+      
+      fund_file_country_model.should_receive(:create).with(fund_file_country_attributes).and_return(country_fund_file_obj)
+      
       @loader.save_fund_file(@fund_file).should == fund_file_obj
     end
 
@@ -58,24 +74,29 @@ describe DataLoader do
     
     it 'should run scaffold generate and reset db' do
       fund_file = mock('fund_file')
+      country_migration_cmds = "zero"
       file_migration_cmds = "first\nsecond"
       migration_cmds = "third\nfourth"
       record = mock('record')
       @loader.should_receive(:load_fund_file).with(fund_file, nil).and_return [record]
+      @loader.should_receive(:country_migration).and_return country_migration_cmds
       @loader.should_receive(:fund_file_migration).and_return file_migration_cmds
       @loader.should_receive(:fund_item_migration).with(record).and_return migration_cmds
 
+      @loader.should_receive(:cmd).with('zero')
       @loader.should_receive(:cmd).with('first')
       @loader.should_receive(:cmd).with('second')
       @loader.should_receive(:cmd).with('third')
       @loader.should_receive(:cmd).with('fourth')
       @loader.should_receive(:add_index)
+      
       @loader.should_receive(:cmd).with(%Q|rake db:migrate|)
       @loader.should_receive(:cmd).with(%Q|rake db:reset|)
       @loader.should_receive(:cmd).with(%Q|rm spec/controllers/fund_items_controller_spec.rb|)
       @loader.should_receive(:cmd).with(%Q|rm spec/controllers/fund_files_controller_spec.rb|)
       @loader.should_receive(:cmd).with(%Q|rake db:test:clone_structure|)
 
+      @loader.should_receive(:add_associations)
       @loader.reset_database fund_file 
     end
     
@@ -203,11 +224,19 @@ describe DataLoader do
       records = @loader.load_fund_file @fund_file, @saved_fund_file
       @loader.attribute_names(records.first).should == [:fund_file_id, :beneficiary, :project_title, :program_name]
     end
-    
+
+    it 'should create country migration' do
+      lines = @loader.country_migration.split("\n")
+      lines[0].should == %Q|./script/destroy scaffold_resource Country|
+      lines[1].should == %Q|./script/generate scaffold_resource Country name:string|
+      lines[2].should == %Q|./script/destroy scaffold_resource FundFileCountry|
+      lines[3].should == %Q|./script/generate scaffold_resource FundFileCountry country_id:integer fund_file_id:integer|
+    end
+
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundFile|
-      lines[1].should == %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[1].should == %Q|./script/generate scaffold_resource FundFile region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
     end
 
     it 'should create fund_item_migration' do

@@ -11,21 +11,21 @@ class ApplicationController < ActionController::Base
   # filter_parameter_logging :password
 
   def home
-    files_by_country = FundFile.all.group_by(&:country)
+    countries = Country.find(:all, :include => :fund_files)
     
     @loaded_files_by_country = Hash.new {|h,v| h[v] = 0}
     @items_by_country = Hash.new {|h,v| h[v] = 0}
-    files_by_country.each do |country, list|
-      list.each do |fund_file|
+    countries.each do |country|
+      country.fund_files.each do |fund_file|
         items_count = fund_file.fund_items.count
-        @items_by_country[country] += items_count
-        @loaded_files_by_country[country] += 1 if (items_count > 0)
+        @items_by_country[country.name] += items_count
+        @loaded_files_by_country[country.name] += 1 if (items_count > 0)
       end
     end
     
     @total_items = FundItem.count
-    @files_by_country = FundFile.count(:group => :country)
-    
+    @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count; h}
+
     @total_loaded_files = @loaded_files_by_country.values.sum
     @total_files = @files_by_country.values.sum
     @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f

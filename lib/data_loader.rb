@@ -30,10 +30,43 @@ class DataLoader
     end
     add_index :fund_items, :fund_file_id|)
     end
+    fund_file_countries_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_file_countries.rb").first
+    text = IO.read(fund_file_countries_migration)
+    File.open(fund_file_countries_migration, 'w') do |f|
+      f.write text.sub(%Q|t.timestamps
+    end|, 
+    %Q|t.timestamps
+    end
+    add_index :fund_file_countries, :fund_file_id
+    add_index :fund_file_countries, :country_id
+    |)
+    end
+  end
+
+  def add_associations
+    File.open("#{RAILS_ROOT}/app/models/fund_file.rb", 'w') do |f|
+      f.write %Q|class FundFile < ActiveRecord::Base
+  has_many :fund_items
+  has_many :countries, :through => :fund_file_countries
+end|
+    end
+    File.open("#{RAILS_ROOT}/app/models/country.rb", 'w') do |f|
+      f.write %Q|class Country < ActiveRecord::Base
+      has_many :fund_file_countries
+      has_many :fund_files, :through => :fund_file_countries
+end|
+    end
+    File.open("#{RAILS_ROOT}/app/models/fund_file_country.rb", 'w') do |f|
+      f.write %Q|class FundFileCountry < ActiveRecord::Base
+      belongs_to :country
+      belongs_to :fund_file
+end|
+    end
   end
 
   def reset_database fund_file
     records = load_fund_file(fund_file, nil)
+    country_migration.each_line {|line| cmd line.strip }
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(records.first).each_line {|line| cmd line.strip }
 
@@ -43,12 +76,8 @@ class DataLoader
     rm spec/controllers/fund_items_controller_spec.rb
     rm spec/controllers/fund_files_controller_spec.rb
     rake db:test:clone_structure|.each_line {|line| cmd line.strip }
-
-    File.open("#{RAILS_ROOT}/app/models/fund_file.rb", 'w') do |f|
-      f.write %Q|class FundFile < ActiveRecord::Base
-  has_many :fund_items
-end|
-    end
+    
+    add_associations
   end
   
   def populate_database fund_files
@@ -82,8 +111,9 @@ end|
 
   def save_fund_file fund_file
     direct_link = get_direct_link fund_file
+    country = country_model.find_or_create_by_name(fund_file.country)
+
     attributes = {
-        :country => fund_file.country,
         :region => fund_file.region,
         :program => fund_file.program,
         :sub_program => fund_file.sub_program_information,
@@ -91,7 +121,19 @@ end|
         :parsed_data_file => fund_file.parsed_data_file,
         :direct_link => direct_link
     }
-    fund_file_model.create attributes
+    fund_file = fund_file_model.create attributes
+    
+    fund_file_country_model.create({:country_id => country.id, :fund_file_id => fund_file.id})
+    
+    fund_file
+  end
+
+  def country_model
+    eval('Country')
+  end
+
+  def fund_file_country_model
+    eval('FundFileCountry')
   end
 
   def fund_file_model
@@ -156,9 +198,16 @@ end|
     record.class.morph_attributes
   end
   
+  def country_migration
+    %Q|./script/destroy scaffold_resource Country\n| +
+    %Q|./script/generate scaffold_resource Country name:string\n| +
+    %Q|./script/destroy scaffold_resource FundFileCountry\n| +
+    %Q|./script/generate scaffold_resource FundFileCountry country_id:integer fund_file_id:integer|
+  end
+
   def fund_file_migration
     %Q|./script/destroy scaffold_resource FundFile\n| +
-    %Q|./script/generate scaffold_resource FundFile country:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      %Q|./script/generate scaffold_resource FundFile region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
   end
 
   def fund_item_migration record
