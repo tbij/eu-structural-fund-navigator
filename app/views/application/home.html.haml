@@ -2,9 +2,22 @@
 
 %table
   %tr
-    %td Country
-    %td{:style => 'text-align: right;'} No. of Items
-    %td{:style => 'text-align: right;'} No. of Files
+    %th{:style => 'text-align: left;'} Country
+    %th{:style => 'text-align: right;'} No. of Items
+    %th{:style => 'text-align: right;'} Loaded Files
+    %th{:style => 'text-align: right;'} No. of Files
+    %th{:style => 'text-align: right;'} % Loaded
+  %tr
+    %td
+      %b TOTAL
+    %td{:style => 'text-align: right;'}
+      %b= number_with_delimiter @total_items
+    %td{:style => 'text-align: right;'}
+      %b= number_with_delimiter @total_loaded_files
+    %td{:style => 'text-align: right;'}
+      %b= number_with_delimiter @total_files
+    %td{:style => 'text-align: right;'}
+      %b= number_to_percentage(@total_percent_loaded, :precision => 1)
   - @items_by_country.each do |country, count|
     %tr
       %td
@@ -12,9 +25,9 @@
       %td{:style => 'text-align: right;'}
         = number_with_delimiter count
       %td{:style => 'text-align: right;'}
+        = number_with_delimiter @loaded_files_by_country[country]
+      %td{:style => 'text-align: right;'}
         = number_with_delimiter @files_by_country[country]
-  %tr
-    %td Total
-    %td{:style => 'text-align: right;'}= number_with_delimiter @total_items
-    %td{:style => 'text-align: right;'}= number_with_delimiter @total_files
+      %td{:style => 'text-align: right;'}
+        = number_to_percentage(@percent_loaded_by_country[country], :precision => 1)
     

@@ -1,6 +1,8 @@
 ActionController::Routing::Routes.draw do |map|
   map.resources :fund_items
 
+  map.resources :fund_files
+
   # The priority is based upon order of creation: first created -> highest priority.
 
   # Sample of regular route:

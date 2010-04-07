@@ -11,14 +11,29 @@ class ApplicationController < ActionController::Base
   # filter_parameter_logging :password
 
   def home
-    @items_by_country = FundItem.count(:group => :country)
+    files_by_country = FundFile.all.group_by(&:country)
+    
+    @loaded_files_by_country = Hash.new {|h,v| h[v] = 0}
+    @items_by_country = Hash.new {|h,v| h[v] = 0}
+    files_by_country.each do |country, list|
+      list.each do |fund_file|
+        items_count = fund_file.fund_items.count
+        @items_by_country[country] += items_count
+        @loaded_files_by_country[country] += 1 if (items_count > 0)
+      end
+    end
+    
     @total_items = FundItem.count
-    countries = @items_by_country.keys
-    @files_by_country = countries.inject({}) do |hash, country|
-      hash[country] = FundItem.count_by_sql(%Q|select count(distinct(original_file_name)) from fund_items where country = "#{country}"|)
+    @files_by_country = FundFile.count(:group => :country)
+    
+    @total_loaded_files = @loaded_files_by_country.values.sum
+    @total_files = @files_by_country.values.sum
+    @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
+    @percent_loaded_by_country = @files_by_country.keys.inject({}) do |hash, country|
+      hash[country] = 100 * @loaded_files_by_country[country].to_f / @files_by_country[country].to_f
       hash
     end
-    @total_files = @files_by_country.values.sum
+    
   end
 
   private

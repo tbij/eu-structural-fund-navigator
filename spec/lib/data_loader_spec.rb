@@ -138,7 +138,7 @@ describe DataLoader do
 
   it 'should load CSV' do
     fund_file = fund_files.first
-    fund_file.class.name.should == 'Morph::FundFile'
+    fund_file.class.name.should == 'Morph::FundFileProxy'
     fund_file.country.should == 'POLAND'
     fund_file.region.should == 'All regions'
     fund_file.program.should == 'ERDF'

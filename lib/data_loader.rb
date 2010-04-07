@@ -23,6 +23,11 @@ class DataLoader
     records = load_fund_file(fund_file, nil)
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(records.first).each_line {|line| cmd line.strip }
+    File.open(RAILS_ROOT+'app/model/fund_file.rb', 'w') do |f|
+      f.write %Q|class FundFile < ActiveRecord::Base
+  has_many :fund_items
+end|
+    end
   end
   
   def populate_database fund_files
@@ -106,7 +111,7 @@ class DataLoader
     csv.sub!('Excel/PDF','Excel_or_PDF')
     csv.sub!('EU/Nation/Region','EU_or_Nation_or_Region')
     csv.sub!('Sub-region / ','Sub-region_or_')
-    fund_files = Morph.from_csv(csv, 'FundFile')
+    fund_files = Morph.from_csv(csv, 'FundFileProxy')
     fund_files.select {|f| !f.parsed_data_file.blank? && !f.parsed_data_file[/no data in pdf/] && !f.parsed_data_file[/^it_/] && !f.parsed_data_file[/pl_allregions_esf.csv/] }
   end
 
@@ -133,7 +138,8 @@ class DataLoader
 
   def fund_item_migration record
     attributes = attribute_names(record)
-    attributes = attributes.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }.join(' ')
+    attr_definitions = attributes.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }
+    attributes = (attr_definitions + ['fund_file_id:integer']).uniq.join(' ')
 %Q|./script/destroy scaffold_resource FundItem
 ./script/generate scaffold_resource FundItem #{attributes}
 rake db:migrate
