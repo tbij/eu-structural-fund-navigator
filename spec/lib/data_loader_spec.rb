@@ -64,10 +64,18 @@ describe DataLoader do
       @loader.should_receive(:load_fund_file).with(fund_file, nil).and_return [record]
       @loader.should_receive(:fund_file_migration).and_return file_migration_cmds
       @loader.should_receive(:fund_item_migration).with(record).and_return migration_cmds
+
       @loader.should_receive(:cmd).with('first')
       @loader.should_receive(:cmd).with('second')
       @loader.should_receive(:cmd).with('third')
       @loader.should_receive(:cmd).with('fourth')
+      @loader.should_receive(:add_index)
+      @loader.should_receive(:cmd).with(%Q|rake db:migrate|)
+      @loader.should_receive(:cmd).with(%Q|rake db:reset|)
+      @loader.should_receive(:cmd).with(%Q|rm spec/controllers/fund_items_controller_spec.rb|)
+      @loader.should_receive(:cmd).with(%Q|rm spec/controllers/fund_files_controller_spec.rb|)
+      @loader.should_receive(:cmd).with(%Q|rake db:test:clone_structure|)
+
       @loader.reset_database fund_file 
     end
     
@@ -208,10 +216,6 @@ describe DataLoader do
       lines = @loader.fund_item_migration(records.first).split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundItem|
       lines[1].should == %Q|./script/generate scaffold_resource FundItem fund_file_id:integer beneficiary:string project_title:string program_name:string|
-      lines[2].should == %Q|rake db:migrate|
-      lines[3].should == %Q|rake db:reset|
-      lines[4].should == %Q|rm spec/controllers/fund_items_controller_spec.rb|
-      lines[5].should == %Q|rake db:test:clone_structure|    
     end
   end
 

@@ -18,12 +18,33 @@ class DataLoader
     puts line
     puts `#{line}`
   end
-  
+
+  def add_index
+    Dir.chdir(RAILS_ROOT)
+    fund_items_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_items.rb").first
+    text = IO.read(fund_items_migration)
+    File.open(fund_items_migration, 'w') do |f|
+      f.write text.sub(%Q|t.timestamps
+    end|, 
+    %Q|t.timestamps
+    end
+    add_index :fund_items, :fund_file_id|)
+    end
+  end
+
   def reset_database fund_file
     records = load_fund_file(fund_file, nil)
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(records.first).each_line {|line| cmd line.strip }
-    File.open(RAILS_ROOT+'app/model/fund_file.rb', 'w') do |f|
+
+    add_index
+    %Q|rake db:migrate
+    rake db:reset
+    rm spec/controllers/fund_items_controller_spec.rb
+    rm spec/controllers/fund_files_controller_spec.rb
+    rake db:test:clone_structure|.each_line {|line| cmd line.strip }
+
+    File.open("#{RAILS_ROOT}/app/models/fund_file.rb", 'w') do |f|
       f.write %Q|class FundFile < ActiveRecord::Base
   has_many :fund_items
 end|
@@ -45,7 +66,7 @@ end|
 
   end
 
-  def save_fund_file fund_file
+  def get_direct_link fund_file
     direct_link = if !fund_file.direct_link_to_pdf.blank?
       fund_file.direct_link_to_pdf
     elsif !fund_file.direct_link_to_excel.blank?
@@ -57,6 +78,10 @@ end|
     else
       fund_file.uri_to_landing_page
     end
+  end
+
+  def save_fund_file fund_file
+    direct_link = get_direct_link fund_file
     attributes = {
         :country => fund_file.country,
         :region => fund_file.region,
@@ -141,11 +166,7 @@ end|
     attr_definitions = attributes.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }
     attributes = (attr_definitions + ['fund_file_id:integer']).uniq.join(' ')
 %Q|./script/destroy scaffold_resource FundItem
-./script/generate scaffold_resource FundItem #{attributes}
-rake db:migrate
-rake db:reset
-rm spec/controllers/fund_items_controller_spec.rb
-rake db:test:clone_structure|    
+./script/generate scaffold_resource FundItem #{attributes}|
   end
 
   def csv_from_file file_name
