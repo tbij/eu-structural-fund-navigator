@@ -15,7 +15,8 @@ describe DataLoader do
 
     @fund_file = mock('fund_file',
         :parsed_data_file => @data_file,
-        :country => @country,
+        :country_or_countries => @country,
+        :level => 'national',
         :region => @region,
         :program => @program,
         :sub_program_information => @sub_program,
@@ -32,7 +33,7 @@ describe DataLoader do
       country_model = mock('CountryClass')
       fund_file_country_model = mock('FundFileCountryClass')
       
-      @loader.should_receive(:fund_file_model).and_return fund_file_model
+      @loader.should_receive(:fund_file_model).with(@fund_file).and_return fund_file_model
       @loader.should_receive(:country_model).and_return country_model
       @loader.should_receive(:fund_file_country_model).and_return fund_file_country_model
       country_obj = mock('country_obj', :id => 'country_id')
@@ -92,8 +93,7 @@ describe DataLoader do
       
       @loader.should_receive(:cmd).with(%Q|rake db:migrate|)
       @loader.should_receive(:cmd).with(%Q|rake db:reset|)
-      @loader.should_receive(:cmd).with(%Q|rm spec/controllers/fund_items_controller_spec.rb|)
-      @loader.should_receive(:cmd).with(%Q|rm spec/controllers/fund_files_controller_spec.rb|)
+      @loader.should_receive(:cmd).with(%Q|rm spec/controllers/*_controller_spec.rb|)
       @loader.should_receive(:cmd).with(%Q|rake db:test:clone_structure|)
 
       @loader.should_receive(:add_associations)
@@ -168,7 +168,7 @@ describe DataLoader do
   it 'should load CSV' do
     fund_file = fund_files.first
     fund_file.class.name.should == 'Morph::FundFileProxy'
-    fund_file.country.should == 'POLAND'
+    fund_file.country_or_countries.should == 'POLAND'
     fund_file.region.should == 'All regions'
     fund_file.program.should == 'ERDF'
     fund_file.parsed_data_file.should == 'pl_in_progress_erdf.csv'
@@ -262,7 +262,7 @@ describe DataLoader do
   end
   
   def master_csv
-%Q|Country,Region,Assigned to,Excel/PDF,Down-loaded,Scrape Needed,Priority,"Data
+%Q|Country/Countries,Level,Region,Assigned to,Excel/PDF,Down-loaded,Scrape Needed,Priority,"Data
 available
 for
 2007","Data
@@ -277,7 +277,7 @@ for2010",Program,"Sub-program
 information",Parsed data file,Original file name,Currency Field,Beneficiary Field,Project Title Field,Program Name Field,Amount Allocated Field (EU Funds),Amount Allocated (All funds EU/Nation/Region),Amount Paid Field,Description Field,Year Field,Date Field,Start Year Field,,Direct link to PDF,"Direct link to
 Excel","Direct Link to 
 HTML",Direct link to Doc,,Last Updated,Next update ,Explanatory Notes,Waiting for response,Contact,Uri to landing page,Contact
-POLAND,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,,Nazwa beneficjenta,Tytu_ projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
+POLAND,national,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,,Nazwa beneficjenta,Tytu_ projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
 |
   end
 

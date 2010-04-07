@@ -44,6 +44,18 @@ class DataLoader
   end
 
   def add_associations
+    File.open("#{RAILS_ROOT}/app/models/national_fund_file.rb", 'w') do |f|
+      f.write %Q|class NationalFundFile < FundFile
+end|
+    end
+    File.open("#{RAILS_ROOT}/app/models/transnational_fund_file.rb", 'w') do |f|
+      f.write %Q|class TransnationalFundFile < FundFile
+end|
+    end
+    File.open("#{RAILS_ROOT}/app/models/crossborder_fund_file.rb", 'w') do |f|
+      f.write %Q|class CrossborderFundFile < FundFile
+end|
+    end
     File.open("#{RAILS_ROOT}/app/models/fund_file.rb", 'w') do |f|
       f.write %Q|class FundFile < ActiveRecord::Base
   has_many :fund_items
@@ -73,8 +85,7 @@ end|
     add_index
     %Q|rake db:migrate
     rake db:reset
-    rm spec/controllers/fund_items_controller_spec.rb
-    rm spec/controllers/fund_files_controller_spec.rb
+    rm spec/controllers/*_controller_spec.rb
     rake db:test:clone_structure|.each_line {|line| cmd line.strip }
     
     add_associations
@@ -111,7 +122,7 @@ end|
 
   def save_fund_file fund_file
     direct_link = get_direct_link fund_file
-    country = country_model.find_or_create_by_name(fund_file.country)
+    country = country_model.find_or_create_by_name(fund_file.country_or_countries)
 
     attributes = {
         :region => fund_file.region,
@@ -121,7 +132,7 @@ end|
         :parsed_data_file => fund_file.parsed_data_file,
         :direct_link => direct_link
     }
-    fund_file = fund_file_model.create attributes
+    fund_file = fund_file_model(fund_file).create attributes
     
     fund_file_country_model.create({:country_id => country.id, :fund_file_id => fund_file.id})
     
@@ -136,8 +147,17 @@ end|
     eval('FundFileCountry')
   end
 
-  def fund_file_model
-    eval('FundFile')
+  def fund_file_model(fund_file)
+    case fund_file.level.strip
+    when /^national/i
+      eval('NationalFundFile')
+    when /^trans/i
+      eval('TransnationalFundFile')
+    when /^cross/i
+      eval('CrossborderFundFile')
+    else
+      raise 'unrecognized level'
+    end
   end
 
   def save_record record
@@ -175,6 +195,7 @@ end|
 
   def load_fund_files file_name
     csv = IO.read(file_name)
+    csv.sub!('Country/Countries','Country_or_Countries')
     csv.sub!('Excel/PDF','Excel_or_PDF')
     csv.sub!('EU/Nation/Region','EU_or_Nation_or_Region')
     csv.sub!('Sub-region / ','Sub-region_or_')
