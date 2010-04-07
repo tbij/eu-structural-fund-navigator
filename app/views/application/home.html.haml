@@ -1,33 +1,35 @@
 %h1 EU Funds
 
 %table
-  %tr
-    %th{:style => 'text-align: left;'} Country
-    %th{:style => 'text-align: right;'} No. of Items
-    %th{:style => 'text-align: right;'} Loaded Files
-    %th{:style => 'text-align: right;'} No. of Files
-    %th{:style => 'text-align: right;'} % Loaded
-  %tr
-    %td
-      %b TOTAL
-    %td{:style => 'text-align: right;'}
-      %b= number_with_delimiter @total_items
-    %td{:style => 'text-align: right;'}
-      %b= number_with_delimiter @total_loaded_files
-    %td{:style => 'text-align: right;'}
-      %b= number_with_delimiter @total_files
-    %td{:style => 'text-align: right;'}
-      %b= number_to_percentage(@total_percent_loaded, :precision => 1)
-  - @items_by_country.each do |country, count|
+  %thead
+    %tr
+      %th{:style => 'text-align: left;'} Country
+      %th{:style => 'text-align: right;'} Items
+      %th{:style => 'text-align: right;'} Loaded <br/> Files
+      %th{:style => 'text-align: right;'} Total <br/> Files
+      %th{:style => 'text-align: right;'} % Loaded
+  %tbody
     %tr
       %td
-        = country
+        %b TOTAL
       %td{:style => 'text-align: right;'}
-        = number_with_delimiter count
+        %b= number_with_delimiter @total_items
       %td{:style => 'text-align: right;'}
-        = number_with_delimiter @loaded_files_by_country[country]
+        %b= number_with_delimiter @total_loaded_files
       %td{:style => 'text-align: right;'}
-        = number_with_delimiter @files_by_country[country]
+        %b= number_with_delimiter @total_files
       %td{:style => 'text-align: right;'}
-        = number_to_percentage(@percent_loaded_by_country[country], :precision => 1)
-    
+        %b= number_to_percentage(@total_percent_loaded, :precision => 1)
+    - @items_by_country.keys.compact.sort.each do |country|
+      %tr
+        %td
+          = country
+        %td{:style => 'text-align: right;'}
+          = @items_by_country[country] == 0 ? '-' : number_with_delimiter(@items_by_country[country])
+        %td{:style => 'text-align: right;'}
+          = @loaded_files_by_country[country] == 0 ? '-' : number_with_delimiter(@loaded_files_by_country[country])
+        %td{:style => 'text-align: right;'}
+          = number_with_delimiter @files_by_country[country]
+        %td{:style => 'text-align: right;'}
+          = @percent_loaded_by_country[country] == 0 ? '-' : number_to_percentage(@percent_loaded_by_country[country], :precision => 1)
+      
