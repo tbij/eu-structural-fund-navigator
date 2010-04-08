@@ -17,23 +17,25 @@ class ApplicationController < ActionController::Base
     @items_by_country = Hash.new {|h,v| h[v] = 0}
     countries.each do |country|
       country.fund_files.each do |fund_file|
-        items_count = fund_file.fund_items.count
-        @items_by_country[country.name] += items_count
-        @loaded_files_by_country[country.name] += 1 if (items_count > 0)
+        if fund_file.is_a?(NationalFundFile)
+          items_count = fund_file.fund_items.count
+          @items_by_country[country.name] += items_count
+          @loaded_files_by_country[country.name] += 1 if (items_count > 0)
+        end
       end
     end
     
-    @total_items = FundItem.count
     @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count; h}
 
-    @total_loaded_files = @loaded_files_by_country.values.sum
-    @total_files = @files_by_country.values.sum
-    @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
     @percent_loaded_by_country = @files_by_country.keys.inject({}) do |hash, country|
       hash[country] = 100 * @loaded_files_by_country[country].to_f / @files_by_country[country].to_f
       hash
     end
     
+    @total_items = FundItem.count
+    @total_loaded_files = @loaded_files_by_country.values.sum
+    @total_files = @files_by_country.values.sum
+    @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
   end
 
   private

@@ -80,7 +80,7 @@ describe DataLoader do
       @loader.should_receive(:populate_database).with(fund_files, fund_files)
       @loader.load_database file_name
     end
-    
+
     it 'should run scaffold generate and reset db' do
       fund_file = mock('fund_file')
       country_migration_cmds = "zero"
@@ -246,7 +246,7 @@ describe DataLoader do
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource FundFile|
-      lines[1].should == %Q|./script/generate scaffold_resource FundFile region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[1].should == %Q|./script/generate scaffold_resource FundFile type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
     end
 
     it 'should create fund_item_migration' do

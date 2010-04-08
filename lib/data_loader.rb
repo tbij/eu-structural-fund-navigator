@@ -161,8 +161,10 @@ end|
       eval('TransnationalFundFile')
     when /^cross/i
       eval('CrossborderFundFile')
+    when /^quango/i
+      puts 'ignoring quango'
     else
-      raise 'unrecognized level'
+      raise "unrecognized level: #{fund_file.level}"
     end
   end
 
@@ -234,7 +236,7 @@ end|
 
   def fund_file_migration
     %Q|./script/destroy scaffold_resource FundFile\n| +
-      %Q|./script/generate scaffold_resource FundFile region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+    %Q|./script/generate scaffold_resource FundFile type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
   end
 
   def fund_item_migration record
