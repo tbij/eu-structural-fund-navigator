@@ -12,6 +12,7 @@ class DataLoader
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
     fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
+    fields = fields.collect {|x| x.to_s.sub(/_field$/,'').to_sym}
     reset_database fields
   end
 
