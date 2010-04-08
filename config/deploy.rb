@@ -88,8 +88,8 @@ namespace :deploy do
     puts 'first time only setup complete!'
   end
 
-  task :reset_db
-  run "cd #{current_path}; rake eufunds:reset_db"
+  task :reset_db, :roles => :app do
+    run "cd #{current_path}; rake eufunds:reset"
   end  
 end
 
