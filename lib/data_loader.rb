@@ -7,11 +7,18 @@ end
 
 class DataLoader
 
-  def load_database file_name
+  def setup_database file_name
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
     files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
     reset_database files_with_data.first
+    migrate_database
+  end
+
+  def load_database file_name
+    fund_files = load_fund_files file_name
+    files_with_data = with_data(fund_files)
+    files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
     populate_database fund_files, files_with_data
   end
   
@@ -87,16 +94,18 @@ end|
     country_migration.each_line {|line| cmd line.strip }
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(records.first).each_line {|line| cmd line.strip }
-
     add_index
-    %Q|rake db:migrate RAILS_ENV=#{RAILS_ENV}
-    rake db:reset RAILS_ENV=#{RAILS_ENV}
+  end
+
+  def migrate_database
+    %Q|rake db:migrate RAILS_ENV=#{RAILS_ENV} --trace
+    rake db:reset RAILS_ENV=#{RAILS_ENV} --trace
     rm spec/controllers/*_controller_spec.rb|.each_line {|line| cmd line.strip }
     
     if RAILS_ENV == 'development'
       cmd "rake db:test:clone_structure RAILS_ENV=#{RAILS_ENV}"
     end
-    
+
     add_associations
   end
   

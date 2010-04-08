@@ -1,9 +1,9 @@
 ActionController::Routing::Routes.draw do |map|
   map.resources :fund_items
 
-  map.resources :fund_files
-
   map.resources :fund_file_countries
+
+  map.resources :fund_files
 
   map.resources :countries
 

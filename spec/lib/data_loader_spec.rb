@@ -69,13 +69,22 @@ describe DataLoader do
       @loader.save_fund_file(@fund_file).should == fund_file_obj
     end
 
-    it 'should reset database using first fund file record attributes, then populate database' do
+    it 'should reset database using first fund file record attributes' do
       file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
       first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
       fund_files = [ first_fund ]
-      @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files
-      
+      @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files      
+      @loader.should_receive(:with_data).with(fund_files).and_return fund_files
       @loader.should_receive(:reset_database).with(first_fund)
+      @loader.setup_database file_name
+    end
+
+
+    it 'should populate database' do
+      file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
+      first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
+      fund_files = [ first_fund ]
+      @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files      
       @loader.should_receive(:with_data).with(fund_files).and_return fund_files
       @loader.should_receive(:populate_database).with(fund_files, fund_files)
       @loader.load_database file_name
@@ -102,12 +111,16 @@ describe DataLoader do
       @loader.should_receive(:cmd).with('fourth')
       @loader.should_receive(:add_index)
       
-      @loader.should_receive(:cmd).with(%Q|rake db:migrate RAILS_ENV=test|)
-      @loader.should_receive(:cmd).with(%Q|rake db:reset RAILS_ENV=test|)
+      @loader.reset_database fund_file 
+    end
+
+    it 'should migrate db' do      
+      @loader.should_receive(:cmd).with(%Q|rake db:migrate RAILS_ENV=test --trace|)
+      @loader.should_receive(:cmd).with(%Q|rake db:reset RAILS_ENV=test --trace|)
       @loader.should_receive(:cmd).with(%Q|rm spec/controllers/*_controller_spec.rb|)
 
       @loader.should_receive(:add_associations)
-      @loader.reset_database fund_file 
+      @loader.migrate_database
     end
     
     it 'should load fund file records in db' do
