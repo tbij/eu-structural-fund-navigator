@@ -88,6 +88,12 @@ namespace :deploy do
     puts 'first time only setup complete!'
   end
 
+  task :bundle_install, :roles => :app do
+    set_gem_bin
+    run "cd #{current_path}; #{ENV['GEM_BIN']}/bundle install"
+    run "cd #{current_path}; #{ENV['GEM_BIN']}/bundle lock"
+  end
+
   task :reset_db, :roles => :app do
     run "cd #{current_path}; rake eufunds:reset"
   end  
