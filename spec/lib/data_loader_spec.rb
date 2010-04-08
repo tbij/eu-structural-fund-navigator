@@ -83,15 +83,18 @@ describe DataLoader do
 
     it 'should run scaffold generate and reset db' do
       fund_file = mock('fund_file')
+      destroy_migration_cmds = "zero"
       country_migration_cmds = "zero"
       file_migration_cmds = "first\nsecond"
       migration_cmds = "third\nfourth"
       record = mock('record')
       @loader.should_receive(:load_fund_file).with(fund_file, nil).and_return [record]
+      @loader.should_receive(:destroy_migration).and_return destroy_migration_cmds
       @loader.should_receive(:country_migration).and_return country_migration_cmds
       @loader.should_receive(:fund_file_migration).and_return file_migration_cmds
       @loader.should_receive(:fund_item_migration).with(record).and_return migration_cmds
 
+      @loader.should_receive(:cmd).with('zero')
       @loader.should_receive(:cmd).with('zero')
       @loader.should_receive(:cmd).with('first')
       @loader.should_receive(:cmd).with('second')
@@ -99,10 +102,9 @@ describe DataLoader do
       @loader.should_receive(:cmd).with('fourth')
       @loader.should_receive(:add_index)
       
-      @loader.should_receive(:cmd).with(%Q|rake db:migrate|)
-      @loader.should_receive(:cmd).with(%Q|rake db:reset|)
+      @loader.should_receive(:cmd).with(%Q|rake db:migrate RAILS_ENV=test|)
+      @loader.should_receive(:cmd).with(%Q|rake db:reset RAILS_ENV=test|)
       @loader.should_receive(:cmd).with(%Q|rm spec/controllers/*_controller_spec.rb|)
-      @loader.should_receive(:cmd).with(%Q|rake db:test:clone_structure|)
 
       @loader.should_receive(:add_associations)
       @loader.reset_database fund_file 

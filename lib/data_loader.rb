@@ -83,15 +83,19 @@ end|
 
   def reset_database fund_file
     records = load_fund_file(fund_file, nil)
+    destroy_migration.each_line {|line| cmd line.strip }
     country_migration.each_line {|line| cmd line.strip }
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(records.first).each_line {|line| cmd line.strip }
 
     add_index
-    %Q|rake db:migrate
-    rake db:reset
-    rm spec/controllers/*_controller_spec.rb
-    rake db:test:clone_structure|.each_line {|line| cmd line.strip }
+    %Q|rake db:migrate RAILS_ENV=#{RAILS_ENV}
+    rake db:reset RAILS_ENV=#{RAILS_ENV}
+    rm spec/controllers/*_controller_spec.rb|.each_line {|line| cmd line.strip }
+    
+    if RAILS_ENV == 'development'
+      cmd "rake db:test:clone_structure RAILS_ENV=#{RAILS_ENV}"
+    end
     
     add_associations
   end
