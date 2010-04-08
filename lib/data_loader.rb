@@ -20,7 +20,7 @@ class DataLoader
     migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
-    populate_database files_with_data, files_with_data
+    populate_database fund_files, files_with_data
   end
   
   def with_data fund_files
@@ -28,8 +28,7 @@ class DataLoader
       !f.parsed_data_file.blank? && 
         !f.parsed_data_file[/no data in pdf/] && 
         !f.parsed_data_file[/^it_/] && 
-        !f.parsed_data_file[/pl_allregions_esf.csv/] &&
-        f.parsed_data_file[/^pl_/]
+        !f.parsed_data_file[/pl_allregions_esf.csv/]
     end
   end
 
