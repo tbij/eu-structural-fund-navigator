@@ -227,24 +227,27 @@ end|
     record.class.morph_attributes
   end
   
+  def destroy_migration
+    %Q|./script/destroy scaffold_resource fund_file_country\n| +
+    %Q|./script/destroy scaffold_resource country\n| +
+    %Q|./script/destroy scaffold_resource fund_item\n| +
+    %Q|./script/destroy scaffold_resource fund_file|
+  end
+
   def country_migration
-    %Q|./script/destroy scaffold_resource Country\n| +
-    %Q|./script/generate scaffold_resource Country name:string\n| +
-    %Q|./script/destroy scaffold_resource FundFileCountry\n| +
-    %Q|./script/generate scaffold_resource FundFileCountry country_id:integer fund_file_id:integer|
+    %Q|./script/generate scaffold_resource country name:string|
   end
 
   def fund_file_migration
-    %Q|./script/destroy scaffold_resource FundFile\n| +
-    %Q|./script/generate scaffold_resource FundFile type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+    %Q|./script/generate scaffold_resource fund_file type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string\n| +
+    %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
   end
 
   def fund_item_migration record
     attributes = attribute_names(record)
     attr_definitions = attributes.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }
     attributes = (attr_definitions + ['fund_file_id:integer']).uniq.join(' ')
-%Q|./script/destroy scaffold_resource FundItem
-./script/generate scaffold_resource FundItem #{attributes}|
+    %Q|./script/generate scaffold_resource fund_item #{attributes}|
   end
 
   def csv_from_file file_name
@@ -292,7 +295,7 @@ end|
         rescue Exception => e
           puts e.class.name
           puts e.to_s
-          puts raw.inspect          
+          puts raw.inspect
         end
       end
       record

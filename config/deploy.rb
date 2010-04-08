@@ -95,7 +95,7 @@ namespace :deploy do
   end
 
   task :reset_db, :roles => :app do
-    run "cd #{current_path}; rake eufunds:reset"
+    run "cd #{current_path}; rake eufunds:reset RAILS_ENV=production"
   end  
 end
 

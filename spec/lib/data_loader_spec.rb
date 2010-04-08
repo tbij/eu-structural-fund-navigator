@@ -235,26 +235,30 @@ describe DataLoader do
       @loader.attribute_names(records.first).should == [:fund_file_id, :beneficiary, :project_title, :program_name]
     end
 
+    it 'should destroy old migrations' do
+      lines = @loader.destroy_migration.split("\n")
+      lines[0].should == %Q|./script/destroy scaffold_resource fund_file_country|      
+      lines[1].should == %Q|./script/destroy scaffold_resource country|
+      lines[2].should == %Q|./script/destroy scaffold_resource fund_item|
+      lines[3].should == %Q|./script/destroy scaffold_resource fund_file|
+    end
+
     it 'should create country migration' do
       lines = @loader.country_migration.split("\n")
-      lines[0].should == %Q|./script/destroy scaffold_resource Country|
-      lines[1].should == %Q|./script/generate scaffold_resource Country name:string|
-      lines[2].should == %Q|./script/destroy scaffold_resource FundFileCountry|
-      lines[3].should == %Q|./script/generate scaffold_resource FundFileCountry country_id:integer fund_file_id:integer|
+      lines[0].should == %Q|./script/generate scaffold_resource country name:string|
     end
 
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
-      lines[0].should == %Q|./script/destroy scaffold_resource FundFile|
-      lines[1].should == %Q|./script/generate scaffold_resource FundFile type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[1].should == %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
     end
 
     it 'should create fund_item_migration' do
       records = @loader.load_fund_file @fund_file, @saved_fund_file
-
       lines = @loader.fund_item_migration(records.first).split("\n")
-      lines[0].should == %Q|./script/destroy scaffold_resource FundItem|
-      lines[1].should == %Q|./script/generate scaffold_resource FundItem fund_file_id:integer beneficiary:string project_title:string program_name:string|
+
+      lines[0].should == %Q|./script/generate scaffold_resource fund_item fund_file_id:integer beneficiary:string project_title:string program_name:string|
     end
   end
 
