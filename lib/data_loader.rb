@@ -12,10 +12,10 @@ class DataLoader
     files_with_data = with_data(fund_files)
     files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
     reset_database files_with_data.first
-    migrate_database
   end
 
   def load_database file_name
+    migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
     files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }

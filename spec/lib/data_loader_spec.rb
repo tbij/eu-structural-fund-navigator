@@ -84,6 +84,7 @@ describe DataLoader do
       file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
       first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
       fund_files = [ first_fund ]
+      @loader.should_receive(:migrate_database)
       @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files      
       @loader.should_receive(:with_data).with(fund_files).and_return fund_files
       @loader.should_receive(:populate_database).with(fund_files, fund_files)
