@@ -26,6 +26,7 @@ class ApplicationController < ActionController::Base
     end
     
     @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count; h}
+    @file_errors_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count(:conditions => "error IS NOT NULL"); h}
 
     @percent_loaded_by_country = @files_by_country.keys.inject({}) do |hash, country|
       hash[country] = 100 * @loaded_files_by_country[country].to_f / @files_by_country[country].to_f
@@ -36,6 +37,7 @@ class ApplicationController < ActionController::Base
     @total_loaded_files = @loaded_files_by_country.values.sum
     @total_files = @files_by_country.values.sum
     @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
+    @total_file_errors = @file_errors_by_country.values.sum
   end
 
   private

@@ -266,7 +266,7 @@ describe DataLoader do
 
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
-      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
       lines[1].should == %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
     end
 

@@ -1,3 +1,4 @@
+require 'fastercsv'
 require 'roo'
 require 'morph'
 
@@ -8,22 +9,27 @@ end
 class DataLoader
 
   def setup_database file_name
-    fund_files = load_fund_files file_name
-    files_with_data = with_data(fund_files)
-    files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
-    reset_database files_with_data.first
+    fund_files   = load_fund_files(file_name)
+    attributes   = fund_files.first.class.morph_attributes
+    fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
+    reset_database fields
   end
 
   def load_database file_name
     migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
-    files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
-    populate_database fund_files, files_with_data
+    populate_database files_with_data, files_with_data
   end
   
   def with_data fund_files
-    fund_files.select {|f| !f.parsed_data_file.blank? && !f.parsed_data_file[/no data in pdf/] && !f.parsed_data_file[/^it_/] && !f.parsed_data_file[/pl_allregions_esf.csv/] }
+    fund_files.select do |f| 
+      !f.parsed_data_file.blank? && 
+        !f.parsed_data_file[/no data in pdf/] && 
+        !f.parsed_data_file[/^it_/] && 
+        !f.parsed_data_file[/pl_allregions_esf.csv/] &&
+        f.parsed_data_file[/^pl_/]
+    end
   end
 
   def cmd line
@@ -88,12 +94,11 @@ end|
     end
   end
 
-  def reset_database fund_file
-    records = load_fund_file(fund_file, nil)
+  def reset_database fields
     destroy_migration.each_line {|line| cmd line.strip }
     country_migration.each_line {|line| cmd line.strip }
     fund_file_migration.each_line {|line| cmd line.strip }
-    fund_item_migration(records.first).each_line {|line| cmd line.strip }
+    fund_item_migration(fields).each_line {|line| cmd line.strip }
     add_index
   end
 
@@ -229,15 +234,10 @@ end|
     fields = attributes.select{|a| a.to_s[/_field$/]}
     field_names = fields.collect do |field|
       normalized = field.to_s.sub(/_field$/,'').to_sym
-      original = convert_to_morph_method_name(fund_file.send(field))
-      original = original.to_sym unless original.blank?
+      original = fund_file.send(field)
       [normalized, original]
     end
     field_names.select {|x| !x[1].blank?}
-  end
-  
-  def attribute_names record
-    record.class.morph_attributes
   end
   
   def destroy_migration
@@ -252,13 +252,12 @@ end|
   end
 
   def fund_file_migration
-    %Q|./script/generate scaffold_resource fund_file type:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string\n| +
+    %Q|./script/generate scaffold_resource fund_file type:string error:text region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string\n| +
     %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
   end
 
-  def fund_item_migration record
-    attributes = attribute_names(record)
-    attr_definitions = attributes.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }
+  def fund_item_migration fields
+    attr_definitions = fields.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }
     attributes = (attr_definitions + ['fund_file_id:integer']).uniq.join(' ')
     %Q|./script/generate scaffold_resource fund_item #{attributes}|
   end
@@ -281,21 +280,23 @@ end|
     return nil if name.blank?
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/DATA/#{country_code}/#{name}"
-
     csv = csv_from_file(file_name)
-
     return nil unless csv
+
     begin
-      raw_records = Morph.from_csv csv, 'RawRecord'
+      raw_records = FasterCSV.new csv, :headers => true
     rescue Exception => e
-      puts e.class.name
-      puts e.to_s
+      if saved_fund_file
+        saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        saved_fund_file.save
+      end
       return nil
     end
 
     field_names = field_names(fund_file)
 
-    raw_records.collect do |raw|
+    records = []
+    raw_records.each do |row|
       record = FundRecord.new
       record.fund_file_id = saved_fund_file.id if saved_fund_file
 
@@ -303,16 +304,19 @@ end|
         normalized = field[0]
         original = field[1]
         begin
-          value = raw.send(original)
+          value = row[original]
           record.morph(normalized, value)
         rescue Exception => e
-          puts e.class.name
-          puts e.to_s
-          puts raw.inspect
+          if saved_fund_file
+            saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
+            saved_fund_file.save
+          end
         end
       end
-      record
+      records << record
     end
+    
+    records
   end
 
 end

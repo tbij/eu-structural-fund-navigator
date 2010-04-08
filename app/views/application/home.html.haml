@@ -8,6 +8,7 @@
       %th{:style => 'text-align: right;'} Loaded <br/> Files
       %th{:style => 'text-align: right;'} Total <br/> Files
       %th{:style => 'text-align: right;'} % Loaded
+      %th{:style => 'text-align: right;'} Load <br/> Errors
   %tbody
     %tr
       %td
@@ -20,6 +21,8 @@
         %b= number_with_delimiter @total_files
       %td{:style => 'text-align: right;'}
         %b= number_to_percentage(@total_percent_loaded, :precision => 1)
+      %td{:style => 'text-align: right;'}
+        %b= number_with_delimiter @total_file_errors        
     - @items_by_country.keys.compact.sort.each do |country|
       %tr
         %td
@@ -32,6 +35,8 @@
           = number_with_delimiter @files_by_country[country]
         %td{:style => 'text-align: right;'}
           = @percent_loaded_by_country[country] == 0 ? '-' : number_to_percentage(@percent_loaded_by_country[country], :precision => 1)
+        %td{:style => 'text-align: right;'}
+          = @file_errors_by_country[country] == 0 ? '-' : number_with_delimiter(@file_errors_by_country[country])
     %tr
       %td
         %b TOTAL
@@ -43,4 +48,5 @@
         %b= number_with_delimiter @total_files
       %td{:style => 'text-align: right;'}
         %b= number_to_percentage(@total_percent_loaded, :precision => 1)
-      
+      %td{:style => 'text-align: right;'}
+        %b= number_with_delimiter @total_file_errors
