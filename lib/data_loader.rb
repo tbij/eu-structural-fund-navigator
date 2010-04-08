@@ -9,11 +9,16 @@ class DataLoader
 
   def load_database file_name
     fund_files = load_fund_files file_name
-    fund_files.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
-    reset_database fund_files.first
-    populate_database fund_files
+    files_with_data = with_data(fund_files)
+    files_with_data.each { |fund_file| puts fund_file.parsed_data_file ; load_fund_file fund_file, nil }
+    reset_database files_with_data.first
+    populate_database fund_files, files_with_data
   end
   
+  def with_data fund_files
+    fund_files.select {|f| !f.parsed_data_file.blank? && !f.parsed_data_file[/no data in pdf/] && !f.parsed_data_file[/^it_/] && !f.parsed_data_file[/pl_allregions_esf.csv/] }
+  end
+
   def cmd line
     puts line
     puts `#{line}`
@@ -91,19 +96,20 @@ end|
     add_associations
   end
   
-  def populate_database fund_files
+  def populate_database fund_files, files_with_data
     fund_files.each do |fund_file|
       saved_fund_file = save_fund_file fund_file 
-      records = load_fund_file fund_file, saved_fund_file
-      if records
-        records.each do |record|
-          save_record record
+      if files_with_data.include?(fund_file)
+        records = load_fund_file(fund_file, saved_fund_file) 
+        if records
+          records.each do |record|
+            save_record record
+          end
+        else
+          puts "ERROR: no records for #{fund_file.parsed_data_file}"
         end
-      else
-        puts "ERROR: no records for #{fund_file.parsed_data_file}"
       end
     end
-
   end
 
   def get_direct_link fund_file
@@ -200,7 +206,7 @@ end|
     csv.sub!('EU/Nation/Region','EU_or_Nation_or_Region')
     csv.sub!('Sub-region / ','Sub-region_or_')
     fund_files = Morph.from_csv(csv, 'FundFileProxy')
-    fund_files.select {|f| !f.parsed_data_file.blank? && !f.parsed_data_file[/no data in pdf/] && !f.parsed_data_file[/^it_/] && !f.parsed_data_file[/pl_allregions_esf.csv/] }
+    fund_files
   end
 
   def field_names fund_file

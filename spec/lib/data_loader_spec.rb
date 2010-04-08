@@ -28,6 +28,13 @@ describe DataLoader do
   end
   
   describe 'when loading database' do
+    it 'should pick files with data' do
+      @loader.with_data([@fund_file]).should == [@fund_file]      
+    end
+    it 'should ignore files without data' do
+      fund_file = mock('fund_file', :parsed_data_file => nil)
+      @loader.with_data([fund_file]).should be_empty      
+    end
     it 'should save fund file' do
       fund_file_model = mock('FundFileClass')
       country_model = mock('CountryClass')
@@ -69,7 +76,8 @@ describe DataLoader do
       @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files
       
       @loader.should_receive(:reset_database).with(first_fund)
-      @loader.should_receive(:populate_database).with(fund_files)
+      @loader.should_receive(:with_data).with(fund_files).and_return fund_files
+      @loader.should_receive(:populate_database).with(fund_files, fund_files)
       @loader.load_database file_name
     end
     
@@ -103,25 +111,27 @@ describe DataLoader do
     it 'should load fund file records in db' do
       fund_file = mock('fund_file')
       fund_file2 = mock('fund_file2')
-      fund_files = [fund_file, fund_file2]
+      fund_files = [@fund_file, fund_file, fund_file2]
+      fund_files_with_data = [@fund_file]
 
+      
       record = mock('record')
       record2 = mock('record2')
       record3 = mock('record3')
-      records = [record]
-      records2 = [record2, record3]
+      records = [record, record2, record3]
 
+      saved_fund_file = mock('saved_fund_file')
       saved_fund_file2 = mock('saved_fund_file')
-      @loader.should_receive(:save_fund_file).with(fund_file).and_return @saved_fund_file
+      @loader.should_receive(:save_fund_file).with(@fund_file).and_return @saved_fund_file
+      @loader.should_receive(:save_fund_file).with(fund_file).and_return saved_fund_file
       @loader.should_receive(:save_fund_file).with(fund_file2).and_return saved_fund_file2
       
-      @loader.should_receive(:load_fund_file).with(fund_file, @saved_fund_file).and_return records
-      @loader.should_receive(:load_fund_file).with(fund_file2, saved_fund_file2).and_return records2
+      @loader.should_receive(:load_fund_file).with(@fund_file, @saved_fund_file).and_return records
       
       @loader.should_receive(:save_record).with(record)
       @loader.should_receive(:save_record).with(record2)
       @loader.should_receive(:save_record).with(record3)
-      @loader.populate_database(fund_files)
+      @loader.populate_database(fund_files, fund_files_with_data)
     end
     
     it 'should save record' do
