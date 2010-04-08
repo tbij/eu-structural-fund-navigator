@@ -88,7 +88,10 @@ namespace :deploy do
     puts 'first time only setup complete!'
   end
 
+  task :reset_db
+  run "cd #{current_path}; rake eufunds:reset_db"
+  end  
 end
 
 after 'deploy:update_code', 'deploy:upload_stuff'
-after 'deploy:symlink', 'deploy:check_site_setup'
+after 'deploy:symlink', 'deploy:check_site_setup', 'deploy:update_data'
