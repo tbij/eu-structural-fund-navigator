@@ -8,11 +8,15 @@ end
 
 class DataLoader
 
-  def setup_database file_name
+  def get_fields(file_name)
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
     fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
     fields = fields.collect {|x| x.to_s.sub(/_field$/,'').to_sym}
+  end
+
+  def setup_database file_name
+    fields = get_fields(file_name)
     reset_database fields
   end
 
@@ -230,9 +234,9 @@ end|
   end
 
   def field_names fund_file
-    attributes = fund_file.class.morph_attributes
-    fields = attributes.select{|a| a.to_s[/_field$/]}
-    field_names = fields.collect do |field|
+    attributes   = fund_file.class.morph_attributes
+    fields       = attributes.select{|a| a.to_s[/_field$/]}
+    field_names  = fields.collect do |field|
       normalized = field.to_s.sub(/_field$/,'').to_sym
       original = fund_file.send(field)
       [normalized, original]

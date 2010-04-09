@@ -25,6 +25,7 @@ describe DataLoader do
         )
     @saved_fund_file_id = 'example_id'
     @saved_fund_file = mock('saved_fund_file', :id => @saved_fund_file_id)
+    @loader.stub!(:cmd)
   end
   
   describe 'when loading database' do
@@ -69,17 +70,6 @@ describe DataLoader do
       @loader.save_fund_file(@fund_file).should == fund_file_obj
     end
 
-    it 'should reset database using first fund file record attributes' do
-      file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
-      first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
-      fund_files = [ first_fund ]
-      @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files      
-      @loader.should_receive(:with_data).with(fund_files).and_return fund_files
-      @loader.should_receive(:reset_database).with(first_fund)
-      @loader.setup_database file_name
-    end
-
-
     it 'should populate database' do
       file_name = RAILS_ROOT+'/spec/fixtures/data/master.csv'
       first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
@@ -92,18 +82,15 @@ describe DataLoader do
     end
 
     it 'should run scaffold generate and reset db' do
-      fund_file = mock('fund_file')
       destroy_migration_cmds = "zero"
       country_migration_cmds = "zero"
       file_migration_cmds = "first\nsecond"
       migration_cmds = "third\nfourth"
-      record = mock('record')
-      @loader.should_receive(:load_fund_file).with(fund_file, nil).and_return [record]
+      fields = mock('fields')
       @loader.should_receive(:destroy_migration).and_return destroy_migration_cmds
       @loader.should_receive(:country_migration).and_return country_migration_cmds
       @loader.should_receive(:fund_file_migration).and_return file_migration_cmds
-      @loader.should_receive(:fund_item_migration).with(record).and_return migration_cmds
-
+      @loader.should_receive(:fund_item_migration).with(fields).and_return migration_cmds
       @loader.should_receive(:cmd).with('zero')
       @loader.should_receive(:cmd).with('zero')
       @loader.should_receive(:cmd).with('first')
@@ -111,8 +98,7 @@ describe DataLoader do
       @loader.should_receive(:cmd).with('third')
       @loader.should_receive(:cmd).with('fourth')
       @loader.should_receive(:add_index)
-      
-      @loader.reset_database fund_file 
+      @loader.reset_database fields
     end
 
     it 'should migrate db' do      
@@ -204,9 +190,9 @@ describe DataLoader do
   it 'should identify fields from fund_files' do
     files = fund_files
     field_names = @loader.field_names(files.first)
-    field_names.first.should == [:beneficiary, :nazwa_beneficjenta] 
-    field_names.second.should == [:project_title, :tytu_projektu]
-    field_names.last.should == [:program_name, :program_operacyjny]
+    field_names.first.should == [:beneficiary, "Nazwa beneficjenta"] 
+    field_names.second.should == [:project_title, "Tytuł projektu"]
+    field_names.last.should == [:program_name, "Program Operacyjny"]
   end
 
   describe 'when parsed data file not present' do
@@ -224,9 +210,9 @@ describe DataLoader do
   
       @loader.stub!(:csv_from_file).with(file_name).and_return pl_csv
       @loader.stub!(:field_names).with(@fund_file).and_return [
-      [:beneficiary, :nazwa_beneficjenta],
-      [:project_title, :tytuł_projektu],
-      [:program_name, :program_operacyjny]
+        [:beneficiary, "Nazwa beneficjenta"],
+        [:project_title, "Tytuł projektu"],
+        [:program_name, "Program Operacyjny"]
       ]
     end
 
@@ -246,11 +232,6 @@ describe DataLoader do
       record.program_name.should == 'Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013'
     end
     
-    it 'should return attribute names' do
-      records = @loader.load_fund_file @fund_file, @saved_fund_file
-      @loader.attribute_names(records.first).should == [:fund_file_id, :beneficiary, :project_title, :program_name]
-    end
-
     it 'should destroy old migrations' do
       lines = @loader.destroy_migration.split("\n")
       lines[0].should == %Q|./script/destroy scaffold_resource fund_file_country|      
@@ -271,8 +252,7 @@ describe DataLoader do
     end
 
     it 'should create fund_item_migration' do
-      records = @loader.load_fund_file @fund_file, @saved_fund_file
-      lines = @loader.fund_item_migration(records.first).split("\n")
+      lines = @loader.fund_item_migration([:fund_file_id, :beneficiary, :project_title, :program_name]).split("\n")
 
       lines[0].should == %Q|./script/generate scaffold_resource fund_item fund_file_id:integer beneficiary:string project_title:string program_name:string|
     end
@@ -307,7 +287,7 @@ for2010",Program,"Sub-program
 information",Parsed data file,Original file name,Currency Field,Beneficiary Field,Project Title Field,Program Name Field,Amount Allocated Field (EU Funds),Amount Allocated (All funds EU/Nation/Region),Amount Paid Field,Description Field,Year Field,Date Field,Start Year Field,,Direct link to PDF,"Direct link to
 Excel","Direct Link to 
 HTML",Direct link to Doc,,Last Updated,Next update ,Explanatory Notes,Waiting for response,Contact,Uri to landing page,Contact
-POLAND,national,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,,Nazwa beneficjenta,Tytu_ projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
+POLAND,national,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,,Nazwa beneficjenta,Tytuł projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
 |
   end
 
