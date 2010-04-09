@@ -116,7 +116,6 @@ describe DataLoader do
       fund_files = [@fund_file, fund_file, fund_file2]
       fund_files_with_data = [@fund_file]
 
-      
       record = mock('record')
       record2 = mock('record2')
       record3 = mock('record3')
@@ -256,6 +255,31 @@ describe DataLoader do
 
       lines[0].should == %Q|./script/generate scaffold_resource fund_item fund_file_id:integer beneficiary:string project_title:string program_name:string|
     end
+  end
+
+  it 'should convert values' do
+    @loader.convert_value('').should == nil
+    @loader.convert_value(nil).should == nil
+    
+    @loader.convert_value('2.000 €').should == 2000
+    @loader.convert_value('5.100.000 €').should == 5100000
+    @loader.convert_value('8.661.908,61 €').should == 8661908
+    @loader.convert_value('908,61 €').should == 908
+
+    @loader.convert_value('2,000 €').should == 2000
+    @loader.convert_value('5,100,000 €').should == 5100000
+    @loader.convert_value('8,661,908.61 €').should == 8661908
+    @loader.convert_value('908.61 €').should == 908
+
+    @loader.convert_value('EUR 5.100.000').should == 5100000
+    @loader.convert_value('EUR 8.661.908,61').should == 8661908
+
+    @loader.convert_value('EUR 5,100,000').should == 5100000
+    @loader.convert_value('EUR 8,661,908.61').should == 8661908
+    
+    @loader.convert_value('79200.0').should == 79200
+    @loader.convert_value('463706.8').should == 463706
+    @loader.convert_value('5356931.54').should == 5356931
   end
 
   def fund_files

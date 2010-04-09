@@ -12,7 +12,14 @@ class DataLoader
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
     fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
-    fields = fields.collect {|x| x.to_s.sub(/_field$/,'').to_sym}
+    fields.collect do |field| 
+      field = field.to_s.sub(/_field$/,'')
+      if field[/^amount_/]
+        [field.sub('amount_','').to_sym, field.to_sym]
+      else
+        field.to_sym
+      end
+    end.flatten
   end
 
   def setup_database file_name
@@ -120,8 +127,8 @@ end|
   
   def populate_database fund_files, files_with_data
     fund_files.each do |fund_file|
-      saved_fund_file = save_fund_file fund_file 
-      if files_with_data.include?(fund_file)
+      saved_fund_file = save_fund_file(fund_file) 
+      if saved_fund_file && files_with_data.include?(fund_file)
         records = load_fund_file(fund_file, saved_fund_file) 
         if records
           records.each do |record|
@@ -160,11 +167,13 @@ end|
         :parsed_data_file => fund_file.parsed_data_file,
         :direct_link => direct_link
     }
-    fund_file = fund_file_model(fund_file).create attributes
-    
-    fund_file_country_model.create({:country_id => country.id, :fund_file_id => fund_file.id})
-    
-    fund_file
+    if model = fund_file_model(fund_file)
+      fund_file = model.create attributes
+      fund_file_country_model.create({:country_id => country.id, :fund_file_id => fund_file.id})
+      fund_file
+    else
+      nil
+    end
   end
 
   def country_model
@@ -261,7 +270,16 @@ end|
   end
 
   def fund_item_migration fields
-    attr_definitions = fields.collect {|a| a.to_s == 'fund_file_id' ? 'fund_file_id:integer' : "#{a.to_s}:string" }
+    attr_definitions = fields.collect do |field|
+      case field.to_s
+      when 'fund_file_id'
+        'fund_file_id:integer'
+      when /^amount_/
+        "#{field}:integer"
+      else
+        "#{field}:string"
+      end
+    end
     attributes = (attr_definitions + ['fund_file_id:integer']).uniq.join(' ')
     %Q|./script/generate scaffold_resource fund_item #{attributes}|
   end
@@ -300,27 +318,57 @@ end|
     field_names = field_names(fund_file)
 
     records = []
-    raw_records.each do |row|
-      record = FundRecord.new
-      record.fund_file_id = saved_fund_file.id if saved_fund_file
-
-      field_names.each do |field|
-        normalized = field[0]
-        original = field[1]
-        begin
-          value = row[original]
-          record.morph(normalized, value)
-        rescue Exception => e
-          if saved_fund_file
-            saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
-            saved_fund_file.save
+    begin
+      raw_records.each do |row|
+        record = FundRecord.new
+        record.fund_file_id = saved_fund_file.id if saved_fund_file
+  
+        field_names.each do |field|
+          normalized = field[0]
+          original = field[1]
+          begin
+            value = row[original]
+            if normalized.to_s[/^amount_(.+)$/]
+              record.morph($1.to_sym, value)
+              value = convert_value value
+            end
+            record.morph(normalized, value)
+          rescue Exception => e
+            if saved_fund_file
+              saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
+              saved_fund_file.save
+            end
           end
         end
+        records << record
       end
-      records << record
+    rescue Exception => e
+      if saved_fund_file
+        saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        saved_fund_file.save
+      end
+      return nil
     end
     
     records
+  end
+
+  def convert_value value
+    unless value.blank?
+      if value[/^([^\d]+)\d/]
+        value = value.sub($1,'')
+      end
+      case value.strip
+      when /^((\d|\.)*\,\d\d)( |$)/
+        $1.gsub('.','').sub(',','.').to_i
+      when /^((\d|\.)*\d\d\d)( |$)/
+        $1.gsub('.','').to_i
+      when /^((\d|\,)*\.\d\d?)( |$)/
+        $1.gsub(',','').to_i
+      when /^((\d|\,)*\d\d\d)( |$)/
+        $1.gsub(',','').to_i
+      end
+    end
   end
 
 end
