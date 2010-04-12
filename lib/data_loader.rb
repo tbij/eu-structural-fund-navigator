@@ -41,6 +41,9 @@ class DataLoader
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
       saved_fund_file = model.find_by_parsed_data_file(fund_file.parsed_data_file)
+      unless saved_fund_file
+        saved_fund_file = save_fund_file(fund_file)
+      end
       if saved_fund_file
         saved_fund_file.fund_items.each {|item| item.destroy}
         records = load_fund_file(fund_file, saved_fund_file) 
