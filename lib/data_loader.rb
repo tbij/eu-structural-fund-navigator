@@ -45,13 +45,17 @@ class DataLoader
         saved_fund_file.fund_items.each {|item| item.destroy}
         records = load_fund_file(fund_file, saved_fund_file) 
         if records
-          records.each { |record| save_record record }
+          previous_record = nil
+          records.each do |record|
+            save_record record, previous_record
+            previous_record = record
+          end
           puts "reloaded #{records.size} records"
         else
           raise "ERROR: no records for #{fund_file.parsed_data_file}"
         end
       else
-        raise "can't find fund file: #{file.inspect}"
+        raise "can't find fund file: #{fund_file.inspect}"
       end
     end
   end
@@ -225,9 +229,9 @@ end|
     !record.respond_to?(symbol) || record.send(symbol).blank?
   end
   
-  def save_record record
+  def save_record record, previous_record=nil
     if attribute_missing?(:beneficiary, record) && attribute_missing?(:project_title, record)
-      raise "cannot load item without a beneficiary or project title: #{record.inspect}"
+      raise "cannot load item without a beneficiary or project title: #{record.inspect} #{previous_record ? "\nprevious_record: #{previous_record.inspect}" : ''}"
     end
     record_model.create record.morph_attributes
   end
