@@ -33,7 +33,29 @@ class DataLoader
     files_with_data = with_data(fund_files)
     populate_database fund_files, files_with_data
   end
-  
+
+  def reload_country country, file_name
+    fund_files = load_fund_files(file_name)
+    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
+    
+    files_with_data.each do |fund_file|
+      model = fund_file_model(fund_file)
+      saved_fund_file = model.find_by_parsed_data_file(fund_file.parsed_data_file)
+      if saved_fund_file
+        saved_fund_file.fund_items.each {|item| item.destroy}
+        records = load_fund_file(fund_file, saved_fund_file) 
+        if records
+          records.each { |record| save_record record }
+          puts "reloaded #{records.size} records"
+        else
+          raise "ERROR: no records for #{fund_file.parsed_data_file}"
+        end
+      else
+        raise "can't find fund file: #{file.inspect}"
+      end
+    end
+  end
+
   def with_data fund_files
     fund_files.select do |f| 
       !f.parsed_data_file.blank? && 
@@ -199,7 +221,14 @@ end|
     end
   end
 
+  def attribute_missing? symbol, record
+    !record.respond_to?(symbol) || record.send(symbol).blank?
+  end
+  
   def save_record record
+    if attribute_missing?(:beneficiary, record) && attribute_missing?(:project_title, record)
+      raise "cannot load item without a beneficiary or project title: #{record.inspect}"
+    end
     record_model.create record.morph_attributes
   end
 
@@ -349,7 +378,6 @@ end|
       end
       return nil
     end
-    
     records
   end
 

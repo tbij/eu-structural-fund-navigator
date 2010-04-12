@@ -26,7 +26,7 @@
     - @items_by_country.keys.compact.sort.each do |country|
       %tr
         %td
-          = country
+          = link_to country, to_excel_url(:country_id => @countries_by_name[country].first.id)
         %td{:style => 'text-align: right;'}
           = @items_by_country[country] == 0 ? '-' : number_with_delimiter(@items_by_country[country])
         %td{:style => 'text-align: right;'}

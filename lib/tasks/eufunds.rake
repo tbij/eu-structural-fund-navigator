@@ -1,15 +1,24 @@
 namespace :eufunds do
 
+  def master_file_name
+    "#{RAILS_ROOT}/DATA/master.csv"
+  end
+
   task :setup_db => :environment do
-    file_name = RAILS_ROOT+'/DATA/master.csv'
     loader = DataLoader.new
-    loader.setup_database file_name
+    loader.setup_database master_file_name
   end
 
   task :load_db => :environment do
-    file_name = RAILS_ROOT+'/DATA/master.csv'
     loader = DataLoader.new
-    loader.load_database file_name
+    loader.load_database master_file_name
+  end
+  
+  task :reload => :environment do
+    loader = DataLoader.new
+    country = ENV['country']
+    puts "country: #{country}"
+    loader.reload_country country, master_file_name
   end
   
   task :excel_to_csv => :environment do

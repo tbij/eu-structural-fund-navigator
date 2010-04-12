@@ -1,3 +1,4 @@
+require 'spreadsheet'
 # Filters added to this controller apply to all controllers in the application.
 # Likewise, all the methods added will be available for all controllers.
 
@@ -13,6 +14,7 @@ class ApplicationController < ActionController::Base
   def home
     countries = Country.find(:all, :include => :fund_files)
     
+    @countries_by_name = countries.group_by(&:name)
     @loaded_files_by_country = Hash.new {|h,v| h[v] = 0}
     @items_by_country = Hash.new {|h,v| h[v] = 0}
     countries.each do |country|
@@ -24,7 +26,7 @@ class ApplicationController < ActionController::Base
         end
       end
     end
-    
+
     @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count; h}
     @file_errors_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count(:conditions => "error IS NOT NULL"); h}
 
@@ -38,6 +40,37 @@ class ApplicationController < ActionController::Base
     @total_files = @files_by_country.values.sum
     @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
     @total_file_errors = @file_errors_by_country.values.sum
+  end
+
+  def to_csv_file
+    country_id = params[:country_id]
+    country = Country.find(country_id, :include => {:fund_files => :fund_items})
+    items = country.fund_files.collect(&:fund_items).flatten
+    
+    render :text => items.to_csv, :content_type => "text/csv"
+=begin
+    workbook = Spreadsheet::Workbook.new()
+    worksheet = workbook.create_worksheet()
+    fields = items.first.attributes.keys
+    fields.each_with_index do |field, index|
+      worksheet[0, index] = field
+    end
+    
+    items.each_with_index do |item, index|
+      attributes = item.attributes
+      row = index + 1
+      fields.each_with_index do |field, col|
+        worksheet[row, col] = attributes[field]
+      end
+    end
+
+    file_name = "#{RAILS_ROOT}/public/#{country.name.tableize.singularize}.xls"
+    logger.info file_name
+    workbook.write(file_name)
+
+    # render :excel => proc { |response, output| output.write(IO.read(file_name)) }
+    render :file => file_name, :content_type => "application/vnd.ms-excel"
+=end
   end
 
   private
