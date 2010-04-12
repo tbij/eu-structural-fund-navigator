@@ -136,14 +136,18 @@ describe DataLoader do
     end
     
     it 'should save record' do
-      morph_attributes = {:x => 'y'}
-      record = mock('record', :morph_attributes => morph_attributes)
+      morph_attributes = {:x => 'y', :beneficiary => 'Acme'}
+      record = mock('record', :morph_attributes => morph_attributes, :beneficiary => 'Acme')
       model = mock('FundItemClass')
       @loader.should_receive(:record_model).and_return model
       model.should_receive(:create).with(morph_attributes).and_return mock('item') 
       @loader.save_record record
     end
     
+    it 'should prevent saving record if beneficiary and project title missing' do
+      record = mock('record')
+      lambda { @loader.save_record record }.should raise_exception
+    end
   end
 
   describe 'when getting csv' do
