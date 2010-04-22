@@ -45,9 +45,38 @@ class ApplicationController < ActionController::Base
   def to_csv_file
     country_id = params[:country_id]
     country = Country.find(country_id, :include => {:fund_files => :fund_items})
-    items = country.fund_files.collect(&:fund_items).flatten
-    
-    render :text => items.to_csv, :content_type => "text/csv"
+
+    fund_files = country.fund_files
+    fund_files = fund_files.select {|f| f.region == 'Calabria All'}
+    items = fund_files.collect(&:fund_items).flatten
+
+    fund_fields = [
+    :region
+    ]
+    item_fields = [
+      :district,
+      :beneficiary,
+      :project_title,
+      :description,
+      :amount_allocated_all_funds_eu_or_nation_or_region,
+      :amount_paid,
+      :amount_allocated_eu_funds,
+      :amount_allocated_public_funds,
+      :amount_allocated_private_funds,
+      :amount_allocated_private_funds,
+      :year,
+      :start_year,
+      :sub_program_name
+    ]
+    output = FasterCSV.generate do |csv|
+      csv << (fund_fields + item_fields).map { |field| FundItem.human_attribute_name(field) }
+      items.each do |item|
+        data = fund_fields.collect {|field| item.fund_file.send(field)} + item_fields.collect { |field| item.send(field) }
+        csv << data
+      end
+    end
+
+    render :text => output, :content_type => "text/csv"
 =begin
     workbook = Spreadsheet::Workbook.new()
     worksheet = workbook.create_worksheet()

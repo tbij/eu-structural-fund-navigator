@@ -31,17 +31,23 @@ class DataLoader
     migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
-    populate_database fund_files, files_with_data
+    populate_database files_with_data.select{|f| f.parsed_data_file[/^it_campania/] }, files_with_data.select{|f| f.parsed_data_file[/^it_campania/] }
   end
 
   def reload_country country, file_name
     fund_files = load_fund_files(file_name)
-    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
+    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^it_campania/] }
     
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
       saved_fund_file = model.find_by_parsed_data_file(fund_file.parsed_data_file)
-      unless saved_fund_file
+      if saved_fund_file
+        attributes = fund_file_attributes fund_file
+        attributes.each do |name,value|
+          saved_fund_file.update_attribute(name,value)
+        end
+        saved_fund_file.save!
+      else
         saved_fund_file = save_fund_file(fund_file)
       end
       if saved_fund_file
@@ -65,9 +71,9 @@ class DataLoader
 
   def with_data fund_files
     fund_files.select do |f| 
-      !f.parsed_data_file.blank? && 
-        !f.parsed_data_file[/no data in pdf/] && 
-        !f.parsed_data_file[/^it_/] && 
+      !f.parsed_data_file.blank? &&
+        !f.parsed_data_file[/no data in pdf/] &&
+        # !f.parsed_data_file[/^it_/] &&
         !f.parsed_data_file[/pl_allregions_esf.csv/]
     end
   end
@@ -102,6 +108,11 @@ class DataLoader
   end
 
   def add_associations
+    File.open("#{RAILS_ROOT}/app/models/fund_item.rb", 'w') do |f|
+      f.write %Q|class FundItem < ActiveRecord::Base
+  belongs_to :fund_file
+end|
+    end
     File.open("#{RAILS_ROOT}/app/models/national_fund_file.rb", 'w') do |f|
       f.write %Q|class NationalFundFile < FundFile
 end|
@@ -122,14 +133,14 @@ end|
     end
     File.open("#{RAILS_ROOT}/app/models/country.rb", 'w') do |f|
       f.write %Q|class Country < ActiveRecord::Base
-      has_many :fund_file_countries
-      has_many :fund_files, :through => :fund_file_countries
+  has_many :fund_file_countries
+  has_many :fund_files, :through => :fund_file_countries
 end|
     end
     File.open("#{RAILS_ROOT}/app/models/fund_file_country.rb", 'w') do |f|
       f.write %Q|class FundFileCountry < ActiveRecord::Base
-      belongs_to :country
-      belongs_to :fund_file
+  belongs_to :country
+  belongs_to :fund_file
 end|
     end
   end
@@ -184,10 +195,8 @@ end|
     end
   end
 
-  def save_fund_file fund_file
+  def fund_file_attributes fund_file
     direct_link = get_direct_link fund_file
-    country = country_model.find_or_create_by_name(fund_file.country_or_countries)
-
     attributes = {
         :region => fund_file.region,
         :program => fund_file.program,
@@ -196,10 +205,16 @@ end|
         :parsed_data_file => fund_file.parsed_data_file,
         :direct_link => direct_link
     }
+  end
+
+  def save_fund_file fund_file
     if model = fund_file_model(fund_file)
-      fund_file = model.create attributes
-      fund_file_country_model.create({:country_id => country.id, :fund_file_id => fund_file.id})
-      fund_file
+      attributes = fund_file_attributes fund_file
+      new_fund_file = model.create attributes
+
+      country = country_model.find_or_create_by_name(fund_file.country_or_countries)
+      fund_file_country_model.create({:country_id => country.id, :fund_file_id => new_fund_file.id})
+      new_fund_file
     else
       nil
     end
@@ -321,7 +336,10 @@ end|
   end
 
   def csv_from_file file_name
-    return nil if !File.exist?(file_name)
+    if !File.exist?(file_name)
+      puts "file doesn't exist: #{file_name}"
+      return nil
+    end
     puts 'opening ' + file_name
     csv = case File.extname(file_name)
     when '.xls'
@@ -335,17 +353,26 @@ end|
 
   def load_fund_file fund_file, saved_fund_file
     name = fund_file.parsed_data_file
-    return nil if name.blank?
+    if name.blank?
+      puts "parsed data file name is blank"
+      return nil
+    end
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/DATA/#{country_code}/#{name}"
     csv = csv_from_file(file_name)
-    return nil unless csv
+    if csv.blank?
+      puts "csv is blank"
+      return nil
+    end
 
     begin
+      puts csv.size
       raw_records = FasterCSV.new csv, :headers => true
     rescue Exception => e
       if saved_fund_file
-        saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        puts error
+        saved_fund_file.error = error
         saved_fund_file.save
       end
       return nil
@@ -353,9 +380,11 @@ end|
 
     field_names = field_names(fund_file)
 
+    last_row = nil
     records = []
     begin
       raw_records.each do |row|
+        last_row = row
         record = FundRecord.new
         record.fund_file_id = saved_fund_file.id if saved_fund_file
   
@@ -371,7 +400,9 @@ end|
             record.morph(normalized, value)
           rescue Exception => e
             if saved_fund_file
-              saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
+              error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
+              puts error
+              saved_fund_file.error = error
               saved_fund_file.save
             end
           end
@@ -380,7 +411,10 @@ end|
       end
     rescue Exception => e
       if saved_fund_file
-        saved_fund_file.error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        puts error
+        puts last_row.inspect if last_row
+        saved_fund_file.error = error
         saved_fund_file.save
       end
       return nil
