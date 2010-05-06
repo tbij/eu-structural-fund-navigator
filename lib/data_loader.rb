@@ -31,12 +31,12 @@ class DataLoader
     migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
-    populate_database files_with_data.select{|f| f.parsed_data_file[/^it_campania/] }, files_with_data.select{|f| f.parsed_data_file[/^it_campania/] }
+    populate_database files_with_data.select{|f| f.parsed_data_file[/^es_/] }, files_with_data.select{|f| f.parsed_data_file[/^es_/] }
   end
 
   def reload_country country, file_name
     fund_files = load_fund_files(file_name)
-    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^it_campania/] }
+    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^es_/] }
     
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
@@ -111,6 +111,21 @@ class DataLoader
     File.open("#{RAILS_ROOT}/app/models/fund_item.rb", 'w') do |f|
       f.write %Q|class FundItem < ActiveRecord::Base
   belongs_to :fund_file
+
+  before_validation :set_year
+  
+  def set_year
+    if year.blank?
+      if !date.blank?
+        begin
+          the_date = Date.parse date
+          self.year = the_date.year if the_date
+        rescue Exception => e
+          # ignore
+        end
+      end
+    end
+  end
 end|
     end
     File.open("#{RAILS_ROOT}/app/models/national_fund_file.rb", 'w') do |f|

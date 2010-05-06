@@ -47,18 +47,18 @@ class ApplicationController < ActionController::Base
     country = Country.find(country_id, :include => {:fund_files => :fund_items})
 
     fund_files = country.fund_files
-    fund_files = fund_files.select {|f| f.region == 'Calabria All'}
+    # fund_files = fund_files.select {|f| f.region == 'Calabria'}
     items = fund_files.collect(&:fund_items).flatten
 
     fund_fields = [
-    :region
+      :region
     ]
     item_fields = [
       :district,
       :beneficiary,
       :project_title,
       :description,
-      :amount_allocated_all_funds_eu_or_nation_or_region,
+      :amount_allocated_eu_funds_and_public_funds_combined,
       :amount_paid,
       :amount_allocated_eu_funds,
       :amount_allocated_public_funds,
@@ -68,10 +68,19 @@ class ApplicationController < ActionController::Base
       :start_year,
       :sub_program_name
     ]
+    item_fields.delete_if do |field|
+      non_blank_count = items.collect { |item| item.send(field) }.select { |value| !value.blank? }.size
+      delete = (non_blank_count == 0)
+    end
+    
+    all_fields = (fund_fields + [:program] + item_fields + [:direct_link]).map { |field| FundItem.human_attribute_name(field) }
+
     output = FasterCSV.generate do |csv|
-      csv << (fund_fields + item_fields).map { |field| FundItem.human_attribute_name(field) }
+      csv << all_fields
       items.each do |item|
-        data = fund_fields.collect {|field| item.fund_file.send(field)} + item_fields.collect { |field| item.send(field) }
+        program = item.european_fund_name.blank? ? item.fund_file.program : item.european_fund_name
+        direct_link = item.fund_file.direct_link
+        data = fund_fields.collect {|field| item.fund_file.send(field)} + [program] + item_fields.collect { |field| item.send(field) } + [direct_link]
         csv << data
       end
     end
