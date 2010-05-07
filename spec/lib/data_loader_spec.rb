@@ -264,6 +264,12 @@ describe DataLoader do
   it 'should convert values' do
     @loader.convert_value('').should == nil
     @loader.convert_value(nil).should == nil
+
+    @loader.convert_value('471,408.00 �').should == 471408
+
+    @loader.convert_value('€70.000,00').should == 70000 
+    @loader.convert_value('-').should == nil
+    @loader.convert_value(' €44.959,74').should == 44959
     
     @loader.convert_value('2.000 €').should == 2000
     @loader.convert_value('5.100.000 €').should == 5100000

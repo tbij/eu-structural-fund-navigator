@@ -31,12 +31,16 @@ class DataLoader
     migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
-    populate_database files_with_data.select{|f| f.parsed_data_file[/^es_/] }, files_with_data.select{|f| f.parsed_data_file[/^es_/] }
+
+    # fund_files = files_with_data.select{|f| f.parsed_data_file[/^es_/] }
+    # files_with_data = files_with_data.select{|f| f.parsed_data_file[/^es_/] }
+
+    populate_database fund_files, files_with_data
   end
 
   def reload_country country, file_name
     fund_files = load_fund_files(file_name)
-    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^es_/] }
+    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase} #.select{|f| f.parsed_data_file[/^es_/] }
     
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
