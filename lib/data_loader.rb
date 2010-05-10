@@ -32,15 +32,16 @@ class DataLoader
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
 
-    # fund_files = files_with_data.select{|f| f.parsed_data_file[/^es_/] }
-    # files_with_data = files_with_data.select{|f| f.parsed_data_file[/^es_/] }
+    # fund_files = files_with_data.select{|f| f.parsed_data_file[/^de_/] }
+    # files_with_data = files_with_data.select{|f| f.parsed_data_file[/^de_/] }
 
     populate_database fund_files, files_with_data
   end
 
   def reload_country country, file_name
     fund_files = load_fund_files(file_name)
-    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase} #.select{|f| f.parsed_data_file[/^es_/] }
+    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
+    # files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^de_/] }
     
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
@@ -190,13 +191,27 @@ end|
       if saved_fund_file && files_with_data.include?(fund_file)
         records = load_fund_file(fund_file, saved_fund_file) 
         if records
-          records.each do |record|
-            save_record record
-          end
+          save_records records, saved_fund_file
         else
-          puts "ERROR: no records for #{fund_file.parsed_data_file}"
+          error_msg = "ERROR: no records for #{fund_file.parsed_data_file}"
+          puts error_msg
+          saved_fund_file.error = error_msg
+          saved_fund_file.save
         end
       end
+    end
+  end
+
+  def save_records records, fund_file
+    begin
+      records.each do |record|
+        save_record record
+      end
+    rescue Exception => e
+      error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+      puts error
+      fund_file.error = error
+      fund_file.save
     end
   end
 
