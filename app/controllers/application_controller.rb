@@ -35,11 +35,17 @@ class ApplicationController < ActionController::Base
       hash
     end
     
+    @percent_errors_by_country = @files_by_country.keys.inject({}) do |hash, country|
+      hash[country] = 100 * @file_errors_by_country[country].to_f / @files_by_country[country].to_f
+      hash
+    end
+
     @total_items = FundItem.count
     @total_loaded_files = @loaded_files_by_country.values.sum
     @total_files = @files_by_country.values.sum
     @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
     @total_file_errors = @file_errors_by_country.values.sum
+    @total_percent_errors = 100 * @total_file_errors.to_f / @total_files.to_f
   end
 
   def to_csv_file
