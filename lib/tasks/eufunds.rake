@@ -16,9 +16,14 @@ namespace :eufunds do
   
   task :reload => :environment do
     loader = DataLoader.new
-    country = ENV['country']
-    puts "country: #{country}"
-    loader.reload_country country, master_file_name
+    if country = ENV['country']
+      puts "country: #{country}"
+      loader.reload_country country, master_file_name
+    end
+    if file = ENV['file']
+      puts "file: #{file}"
+      loader.reload_file file, master_file_name
+    end
   end
   
   task :excel_to_csv => :environment do

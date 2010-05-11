@@ -28,6 +28,7 @@ role :db,  domain, :primary => true, :no_release => true
 # set :deploy_to, "/opt/apps/#{application}"
 
 namespace :deploy do
+
   task :restart, :roles => :app, :except => { :no_release => true } do
     top.deprec.app.restart
   end
@@ -96,10 +97,12 @@ namespace :deploy do
 
   task :setup_db, :roles => :app do
     run "cd #{current_path}; rake eufunds:setup_db RAILS_ENV=production"
-  end  
+  end
+
   task :load_db, :roles => :app do
     run "cd #{current_path}; rake eufunds:load_db RAILS_ENV=production"
-  end  
+  end
+
 end
 
 after 'deploy:update_code', 'deploy:upload_stuff'

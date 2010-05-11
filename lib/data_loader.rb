@@ -38,11 +38,20 @@ class DataLoader
     populate_database fund_files, files_with_data
   end
 
-  def reload_country country, file_name
-    fund_files = load_fund_files(file_name)
+  def reload_file parsed_data_file_name, master_file_name
+    fund_files = load_fund_files(master_file_name)
+    files_with_data = with_data(fund_files).select {|f| f.parsed_data_file.strip == parsed_data_file_name.strip }
+    reload_files files_with_data, master_file_name
+  end
+
+  def reload_country country, master_file_name
+    fund_files = load_fund_files(master_file_name)
     files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
     # files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^de_/] }
-    
+    reload_files files_with_data, master_file_name
+  end
+
+  def reload_files files_with_data, file_name
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
       saved_fund_file = model.find_by_parsed_data_file(fund_file.parsed_data_file)
@@ -193,10 +202,7 @@ end|
         if records
           save_records records, saved_fund_file
         else
-          error_msg = "ERROR: no records for #{fund_file.parsed_data_file}"
-          puts error_msg
-          saved_fund_file.error = error_msg
-          saved_fund_file.save
+          log_error saved_fund_file, "ERROR: no records for #{fund_file.parsed_data_file}"
         end
       end
     end
@@ -208,10 +214,7 @@ end|
         save_record record
       end
     rescue Exception => e
-      error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
-      puts error
-      fund_file.error = error
-      fund_file.save
+      log_error fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
     end
   end
 
@@ -385,6 +388,18 @@ end|
     end
   end
 
+  def log_error fund_file, message
+    puts message
+    if fund_file
+      if fund_file.error.blank?
+        fund_file.error = message
+      else
+        fund_file.error = "#{fund_file.error}\n#{message}"
+      end
+      fund_file.save
+    end
+  end
+
   def load_fund_file fund_file, saved_fund_file
     name = fund_file.parsed_data_file
     if name.blank?
@@ -402,17 +417,20 @@ end|
     begin
       puts csv.size
       raw_records = FasterCSV.new csv, :headers => true
-    rescue Exception => e
-      if saved_fund_file
-        error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
-        puts error
-        saved_fund_file.error = error
-        saved_fund_file.save
-      end
+    rescue Exception => e      
+      log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
       return nil
     end
 
     field_names = field_names(fund_file)
+
+    if field_names.empty?
+      log_error saved_fund_file, 'ERROR: no column mappings defined'
+      return nil
+    elsif field_names.assoc(:beneficiary).nil? && field_names.assoc(:project_title).nil?
+      log_error saved_fund_file, "ERROR: no column mapping defined for beneficiary or project title: #{field_names.inspect}"
+      return nil
+    end
 
     last_row = nil
     records = []
@@ -434,10 +452,7 @@ end|
             record.morph(normalized, value)
           rescue Exception => e
             if saved_fund_file
-              error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
-              puts error
-              saved_fund_file.error = error
-              saved_fund_file.save
+              log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
             end
           end
         end
@@ -445,11 +460,8 @@ end|
       end
     rescue Exception => e
       if saved_fund_file
-        error = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
-        puts error
+        log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
         puts last_row.inspect if last_row
-        saved_fund_file.error = error
-        saved_fund_file.save
       end
       return nil
     end
