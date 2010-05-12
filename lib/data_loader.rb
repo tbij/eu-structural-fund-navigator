@@ -65,17 +65,23 @@ class DataLoader
         saved_fund_file = save_fund_file(fund_file)
       end
       if saved_fund_file
-        saved_fund_file.fund_items.each {|item| item.destroy}
-        records = load_fund_file(fund_file, saved_fund_file) 
-        if records
-          previous_record = nil
-          records.each do |record|
-            save_record record, previous_record
-            previous_record = record
+        begin
+          saved_fund_file.fund_items.each {|item| item.destroy}
+          records = load_fund_file(fund_file, saved_fund_file) 
+          if records
+            previous_record = nil
+            records.each do |record|
+              save_record record, previous_record
+              previous_record = record
+            end
+            puts "reloaded #{records.size} records"
+            saved_fund_file.error = nil
+            saved_fund_file.save
+          else          
+            log_error saved_fund_file, "ERROR: no records for #{fund_file.parsed_data_file}"
           end
-          puts "reloaded #{records.size} records"
-        else
-          raise "ERROR: no records for #{fund_file.parsed_data_file}"
+        rescue Exception => e
+          log_exception saved_fund_file, e
         end
       else
         raise "can't find fund file: #{fund_file.inspect}"
@@ -214,7 +220,7 @@ end|
         save_record record
       end
     rescue Exception => e
-      log_error fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+      log_exception fund_file, e
     end
   end
 
@@ -388,6 +394,10 @@ end|
     end
   end
 
+  def log_exception fund_file, e
+    log_error fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+  end
+
   def log_error fund_file, message
     puts message
     if fund_file
@@ -418,7 +428,7 @@ end|
       puts csv.size
       raw_records = FasterCSV.new csv, :headers => true
     rescue Exception => e      
-      log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+      log_exception saved_fund_file, e
       return nil
     end
 
@@ -460,7 +470,7 @@ end|
       end
     rescue Exception => e
       if saved_fund_file
-        log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+        log_exception saved_fund_file, e
         puts last_row.inspect if last_row
       end
       return nil
