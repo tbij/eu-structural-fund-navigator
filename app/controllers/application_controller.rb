@@ -12,9 +12,17 @@ class ApplicationController < ActionController::Base
   # filter_parameter_logging :password
 
   def home
+    @top_priority = %w[ITALY GERMANY SPAIN GREECE BULGARIA UK] # LATVIA 
     countries = Country.find(:all, :include => :fund_files)
-    
+
+    top_countries = countries.select {|x| @top_priority.include?(x.name) }
+    other_countries = countries - top_countries
+    other_priority = other_countries.map(&:name)
+
     @countries_by_name = countries.group_by(&:name)
+    @top_countries_by_name = top_countries.group_by(&:name)
+    @other_countries_by_name = other_countries.group_by(&:name)
+    
     @loaded_files_by_country = Hash.new {|h,v| h[v] = 0}
     @items_by_country = Hash.new {|h,v| h[v] = 0}
     countries.each do |country|
@@ -26,15 +34,12 @@ class ApplicationController < ActionController::Base
         end
       end
     end
-
     @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count; h}
     @file_errors_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count(:conditions => "error IS NOT NULL"); h}
-
     @percent_loaded_by_country = @files_by_country.keys.inject({}) do |hash, country|
       hash[country] = 100 * @loaded_files_by_country[country].to_f / @files_by_country[country].to_f
       hash
     end
-    
     @percent_errors_by_country = @files_by_country.keys.inject({}) do |hash, country|
       hash[country] = 100 * @file_errors_by_country[country].to_f / @files_by_country[country].to_f
       hash
@@ -46,6 +51,28 @@ class ApplicationController < ActionController::Base
     @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
     @total_file_errors = @file_errors_by_country.values.sum
     @total_percent_errors = 100 * @total_file_errors.to_f / @total_files.to_f
+
+    # @top_total_items = FundItem.count
+
+    @top_items_by_country = @items_by_country.keys.inject({}) do |hash, name|
+      hash[name] = @items_by_country[name] if @top_priority.include?(name)
+      hash
+    end
+    @top_total_loaded_files = @top_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
+    @top_total_files = @top_priority.collect{|name| @files_by_country[name]}.flatten.sum
+    @top_total_percent_loaded = 100 * @top_total_loaded_files.to_f / @top_total_files.to_f
+    @top_total_file_errors = @top_priority.collect{|name| @file_errors_by_country[name]}.flatten.sum
+    @top_total_percent_errors = 100 * @top_total_file_errors.to_f / @top_total_files.to_f
+
+    @other_items_by_country = @items_by_country.keys.inject({}) do |hash, name|
+      hash[name] = @items_by_country[name] if other_priority.include?(name)
+      hash
+    end
+    @other_total_loaded_files = other_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
+    @other_total_files = other_priority.collect{|name| @files_by_country[name]}.flatten.sum
+    @other_total_percent_loaded = 100 * @other_total_loaded_files.to_f / @other_total_files.to_f
+    @other_total_file_errors = other_priority.collect{|name| @file_errors_by_country[name]}.flatten.sum
+    @other_total_percent_errors = 100 * @other_total_file_errors.to_f / @other_total_files.to_f
   end
 
   def to_csv_file

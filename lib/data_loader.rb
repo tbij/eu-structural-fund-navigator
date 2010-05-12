@@ -387,6 +387,8 @@ end|
     csv = case File.extname(file_name)
     when '.xls'
       convert file_name
+    when '.xlsx'
+      convert file_name
     when '.csv'
       IO.read(file_name)
     else
