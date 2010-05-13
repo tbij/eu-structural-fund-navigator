@@ -103,6 +103,16 @@ namespace :deploy do
     run "cd #{current_path}; rake eufunds:load_db RAILS_ENV=production --trace"
   end
 
+  task :reload, :roles => :app do
+    file = ENV['file']
+    country = ENV['country']
+    if file
+      run "cd #{current_path}; rake eufunds:reload file=#{file} RAILS_ENV=production --trace"
+    end
+    if country
+      run "cd #{current_path}; rake eufunds:reload country=#{country} RAILS_ENV=production --trace"
+    end
+  end
 end
 
 after 'deploy:update_code', 'deploy:upload_stuff'
