@@ -305,7 +305,7 @@ end|
     s.cell(row,1) ? true : false
   end
 
-  def convert excel_file
+  def convert_excel_to_csv excel_file
     sheet = Excel.new(excel_file)
     raise 'expected value in first cell' unless row_not_empty(sheet, 1)
     FasterCSV.generate do |csv|
@@ -386,9 +386,9 @@ end|
     puts 'opening ' + file_name
     csv = case File.extname(file_name)
     when '.xls'
-      convert file_name
+      convert_excel_to_csv file_name
     when '.xlsx'
-      convert file_name
+      raise "cannot load xlsx -> save it to xls"
     when '.csv'
       IO.read(file_name)
     else
@@ -420,7 +420,14 @@ end|
     end
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/DATA/#{country_code}/#{name}"
-    csv = csv_from_file(file_name)
+    csv = nil
+    begin
+      csv = csv_from_file(file_name)
+    rescue Exception => e
+      log_exception saved_fund_file, e
+      return nil
+    end
+
     if csv.blank?
       puts "csv is blank"
       return nil

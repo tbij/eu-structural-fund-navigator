@@ -71,8 +71,10 @@ class ApplicationController < ActionController::Base
     @other_total_files = @other_priority.collect{|name| @files_by_country[name]}.flatten.sum
     @other_total_file_errors = @other_priority.collect{|name| @file_errors_by_country[name]}.flatten.sum
 
-    @other_total_percent_loaded = @other_priority.collect {|name| @percent_loaded_by_country[name].to_f }.sum / @other_priority.size
-    @other_total_percent_errors = @other_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / @other_priority.size
+    other_priority_size = @other_priority.empty? ? @other_priority.size : 1000
+
+    @other_total_percent_loaded = @other_priority.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
+    @other_total_percent_errors = @other_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
   end
 
   def to_csv_file
