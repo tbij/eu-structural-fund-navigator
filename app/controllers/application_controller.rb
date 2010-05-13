@@ -57,8 +57,8 @@ class ApplicationController < ActionController::Base
       hash
     end
     @top_total_loaded_files = @top_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
-    @top_total_files =        @top_priority.collect{|name| @files_by_country[name]}.flatten.sum
-    @top_total_file_errors =  @top_priority.collect{|name| @file_errors_by_country[name]}.flatten.sum
+    @top_total_files =        @top_priority.collect{|name| @files_by_country[name] || 0}.flatten.sum
+    @top_total_file_errors =  @top_priority.collect{|name| @file_errors_by_country[name] || 0}.flatten.sum
 
     @top_total_percent_loaded = @top_priority.collect {|name| @percent_loaded_by_country[name].to_f }.sum / @top_priority.size
     @top_total_percent_errors = @top_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / @top_priority.size

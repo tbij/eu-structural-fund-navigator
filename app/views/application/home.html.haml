@@ -15,7 +15,7 @@
     - @top_priority.each do |country|
       %tr
         %td
-          = link_to country, to_excel_url(:country_id => @top_countries_by_name[country].first.id)
+          = link_to country, (@top_countries_by_name[country] ? to_excel_url(:country_id => @top_countries_by_name[country].first.id) : '')
         %td{:style => 'text-align: right; color: darkgreen;'}
           = @percent_loaded_by_country[country] == 0 ? '' : number_to_percentage(@percent_loaded_by_country[country], :precision => 0)
         %td{:style => 'text-align: right; color: darkgreen;'}

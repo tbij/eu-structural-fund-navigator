@@ -100,7 +100,7 @@ namespace :deploy do
   end
 
   task :load_db, :roles => :app do
-    run "cd #{current_path}; rake eufunds:load_db RAILS_ENV=production"
+    run "cd #{current_path}; rake eufunds:load_db RAILS_ENV=production --trace"
   end
 
 end
