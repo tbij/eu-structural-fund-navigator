@@ -78,6 +78,13 @@ class ApplicationController < ActionController::Base
     @other_total_percent_errors = @other_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
   end
 
+  def errors_by_country
+    name = params[:country_name]
+    country = Country.find_by_name(name, :include => :fund_files)
+    @country_name = name.split.map(&:capitalize).join(' ')
+    @files_with_errors = country.fund_files.select(&:error)
+  end
+  
   def to_csv_file
     country_id = params[:country_id]
     country = Country.find(country_id, :include => {:fund_files => :fund_items})
@@ -90,6 +97,7 @@ class ApplicationController < ActionController::Base
       :region
     ]
     item_fields = [
+      :agency,
       :district,
       :beneficiary,
       :project_title,

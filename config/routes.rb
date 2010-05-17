@@ -38,6 +38,8 @@ ActionController::Routing::Routes.draw do |map|
   #     admin.resources :products
   #   end
 
+  map.to_excel 'errors/:country_name', :controller => 'application', :action => 'errors_by_country'
+
   map.to_excel 'to_excel/:country_id.csv', :controller => 'application', :action => 'to_csv_file'
 
   # You can have the root of your site routed with map.root -- just remember to delete public/index.html.
