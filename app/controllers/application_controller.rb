@@ -95,9 +95,9 @@ class ApplicationController < ActionController::Base
 
     fund_fields = [
       :region
+      # :agency
     ]
     item_fields = [
-      :agency,
       :district,
       :beneficiary,
       :project_title,
@@ -130,29 +130,6 @@ class ApplicationController < ActionController::Base
     end
 
     render :text => output, :content_type => "text/csv"
-=begin
-    workbook = Spreadsheet::Workbook.new()
-    worksheet = workbook.create_worksheet()
-    fields = items.first.attributes.keys
-    fields.each_with_index do |field, index|
-      worksheet[0, index] = field
-    end
-    
-    items.each_with_index do |item, index|
-      attributes = item.attributes
-      row = index + 1
-      fields.each_with_index do |field, col|
-        worksheet[row, col] = attributes[field]
-      end
-    end
-
-    file_name = "#{RAILS_ROOT}/public/#{country.name.tableize.singularize}.xls"
-    logger.info file_name
-    workbook.write(file_name)
-
-    # render :excel => proc { |response, output| output.write(IO.read(file_name)) }
-    render :file => file_name, :content_type => "application/vnd.ms-excel"
-=end
   end
 
   private

@@ -1,6 +1,8 @@
 require 'fastercsv'
 require 'roo'
 require 'morph'
+require 'cmess/guess_encoding'
+require 'iconv'
 
 class FundRecord
   include Morph
@@ -71,7 +73,7 @@ class DataLoader
           if records
             previous_record = nil
             records.each do |record|
-              save_record record, previous_record
+              save_record record, previous_record, saved_fund_file
               previous_record = record
             end
             puts "reloaded #{records.size} records"
@@ -290,9 +292,11 @@ end|
     !record.respond_to?(symbol) || record.send(symbol).blank?
   end
   
-  def save_record record, previous_record=nil
+  def save_record record, previous_record=nil, saved_fund_file=nil
     if attribute_missing?(:beneficiary, record) && attribute_missing?(:project_title, record)
-      raise "cannot load item without a beneficiary or project title: #{record.inspect} #{previous_record ? "\nprevious_record: #{previous_record.inspect}" : ''}"
+      log_previous = previous_record ? "\nprevious_record: #{previous_record.inspect}" : ''
+      log_fields = save_fund_file ? "\nfields: #{field_names(saved_fund_file).inspect}" : 'no saved_fund_file'
+      raise "cannot load item without a beneficiary or project title: #{record.inspect} #{log_previous} #{log_fields}"
     end
     record_model.create record.morph_attributes
   end
@@ -343,8 +347,8 @@ end|
       normalized = field.to_s.sub(/_field$/,'').to_sym
       original = fund_file.send(field)
       [normalized, original]
-    end
-    field_names.select {|x| !x[1].blank?}
+    end.select {|x| !x[1].blank?}
+    field_names
   end
   
   def destroy_migration
@@ -359,7 +363,7 @@ end|
   end
 
   def fund_file_migration
-    %Q|./script/generate scaffold_resource fund_file type:string error:text region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string\n| +
+    %Q|./script/generate scaffold_resource fund_file type:string error:text region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string\n| +
     %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
   end
 
@@ -380,8 +384,7 @@ end|
 
   def csv_from_file file_name
     if !File.exist?(file_name)
-      puts "file doesn't exist: #{file_name}"
-      return nil
+      raise "file doesn't exist: #{file_name}"
     end
     puts 'opening ' + file_name
     csv = case File.extname(file_name)
@@ -412,6 +415,24 @@ end|
     end
   end
 
+  def convert_encoding content, file_name
+    charset = CMess::GuessEncoding::Automatic.guess(content)
+    case charset 
+      when 'UNKNOWN'
+        puts 'unknown encoding'
+      when 'UTF-8'
+        puts 'UTF-8 encoding'
+      else
+        puts "converting from #{charset} to UTF-8"
+        content = Iconv.conv('utf-8', charset, content)
+        puts "writing #{file_name} as UTF-8"
+        File.open(file_name, 'w') do |file|
+          file.write(content)
+        end
+    end
+    content
+  end
+  
   def load_fund_file fund_file, saved_fund_file
     name = fund_file.parsed_data_file
     if name.blank?
@@ -423,6 +444,8 @@ end|
     csv = nil
     begin
       csv = csv_from_file(file_name)
+      csv_file_name = file_name.sub(/\.xls$/,'.csv')
+      csv = convert_encoding(csv, csv_file_name) if csv
     rescue Exception => e
       log_exception saved_fund_file, e
       return nil
@@ -484,6 +507,22 @@ end|
       end
       return nil
     end
+    
+    amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
+    all_amounts_sum = records.collect do |record|
+      amount_fields.collect do |amount_field|
+        amount = record.send(amount_field)
+        (amount.nil? || amount.blank?) ? 0 : amount
+      end.sum
+    end.sum
+
+    puts "all_amounts_sum: #{all_amounts_sum}"
+
+    if all_amounts_sum == 0
+      log_error(saved_fund_file, "all amounts are zero for all items in this file")
+      return nil
+    end
+
     records
   end
 

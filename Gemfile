@@ -8,6 +8,7 @@ gem 'morph', '0.2.9'
 gem 'fastercsv'
 gem 'compass'
 gem 'compass-susy-plugin'
+gem 'cmess'
 
 # roo + dependencies
 gem 'roo'
