@@ -6,11 +6,11 @@
     %tr
       %th{:style => 'text-align: left; width: 10em;'}
       %th{:style => 'text-align: right; color: darkgreen;'} % &nbsp;<br/> Loaded &nbsp;
-      %th{:style => 'text-align: right; color: darkgreen;'} Loaded &nbsp;<br/> Files &nbsp<br/> Count &nbsp;
+      %th{:style => 'text-align: right; color: darkgreen;'} Loaded &nbsp;<br/> Sources &nbsp<br/> Count &nbsp;
       %th{:style => 'text-align: right; color: darkgreen;'} &nbsp; &nbsp; &nbsp; Items &nbsp;
       %th{:style => "text-align: right; color: #{@top_error_colour};"} % Load &nbsp;<br/> Errors &nbsp;
       %th{:style => "text-align: right; color: #{@top_error_colour};"} Load &nbsp;<br/> Errors &nbsp<br/> Count &nbsp;
-      %th{:style => 'text-align: right;'} &nbsp; Total &nbsp;<br/> Files &nbsp;
+      %th{:style => 'text-align: right;'} &nbsp; Total &nbsp;<br/> Sources &nbsp;
   %tbody
     - @top_priority.each do |country|
       %tr
@@ -50,11 +50,11 @@
     %tr
       %th{:style => 'text-align: left;; width: 10em;'}
       %th{:style => 'text-align: right; color: darkgreen;'} % &nbsp;<br/> Loaded &nbsp;
-      %th{:style => 'text-align: right; color: darkgreen;'} Loaded &nbsp;<br/> Files &nbsp<br/> Count &nbsp;
+      %th{:style => 'text-align: right; color: darkgreen;'} Loaded &nbsp;<br/> Sources &nbsp<br/> Count &nbsp;
       %th{:style => 'text-align: right; color: darkgreen;'} &nbsp; &nbsp; &nbsp; Items &nbsp;
       %th{:style => "text-align: right; color: #{@other_error_colour};"} % Load &nbsp;<br/> Errors &nbsp;
       %th{:style => "text-align: right; color: #{@other_error_colour};"} Load &nbsp;<br/> Errors &nbsp<br/> Count &nbsp;
-      %th{:style => 'text-align: right;'} &nbsp; Total &nbsp;<br/> Files &nbsp;
+      %th{:style => 'text-align: right;'} &nbsp; Total &nbsp;<br/> Sources &nbsp;
   %tbody
     - @other_items_by_country.keys.compact.sort.each do |country|
       %tr
