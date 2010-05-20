@@ -56,10 +56,13 @@ class ApplicationController < ActionController::Base
       hash[name] = @items_by_country[name] if @top_priority.include?(name)
       hash
     end
+    
+    @top_items_count = @top_items_by_country.values.map(&:to_i).sum
     @top_total_loaded_files = @top_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
     @top_total_files =        @top_priority.collect{|name| @files_by_country[name] || 0}.flatten.sum
     @top_total_file_errors =  @top_priority.collect{|name| @file_errors_by_country[name] || 0}.flatten.sum
-
+    @top_error_colour = (@top_total_file_errors == 0) ? 'darkgrey' : 'darkred'
+    
     @top_total_percent_loaded = @top_priority.collect {|name| @percent_loaded_by_country[name].to_f }.sum / @top_priority.size
     @top_total_percent_errors = @top_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / @top_priority.size
 
@@ -67,9 +70,12 @@ class ApplicationController < ActionController::Base
       hash[name] = @items_by_country[name] if @other_priority.include?(name)
       hash
     end
+
+    @other_items_count = @other_items_by_country.values.map(&:to_i).sum
     @other_total_loaded_files = @other_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
     @other_total_files = @other_priority.collect{|name| @files_by_country[name]}.flatten.sum
     @other_total_file_errors = @other_priority.collect{|name| @file_errors_by_country[name]}.flatten.sum
+    @other_error_colour = (@other_total_file_errors == 0) ? 'darkgrey' : 'darkred'
 
     # other_priority_size = @other_priority.empty? ? @other_priority.size : 1000
     other_priority_size = @other_priority.size
