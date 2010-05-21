@@ -101,8 +101,8 @@ class ApplicationController < ActionController::Base
     items = fund_files.collect(&:fund_items).flatten
 
     fund_fields = [
-      :region
-      # :agency
+      :region,
+      :agency
     ]
     item_fields = [
       :district,
