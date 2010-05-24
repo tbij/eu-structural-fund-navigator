@@ -97,8 +97,8 @@
   %tbody
     - @transnational_groups.each do |group|
       %tr
-        %td=group
-        %td{:style => 'text-align: right;'}
+        %td=group.gsub(/([^,]+,\s[^,]+,\s[^,]+,)/,'\1<br />&nbsp;&nbsp;')
+        %td{:style => 'text-align: right; vertical-align: text-top;'}
           = number_with_delimiter @files_by_country[group]
     %tr
       %td
