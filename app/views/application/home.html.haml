@@ -88,4 +88,20 @@
       %td{:style => 'text-align: right;'}
         %b= number_with_delimiter @other_total_files
 
-
+%h2 Transnational
+%table
+  %thead
+    %tr
+      %td
+      %th{:style => 'text-align: right;'} &nbsp; Total &nbsp;<br/> Sources &nbsp;      
+  %tbody
+    - @transnational_groups.each do |group|
+      %tr
+        %td=group
+        %td{:style => 'text-align: right;'}
+          = number_with_delimiter @files_by_country[group]
+    %tr
+      %td
+        %b TOTAL
+      %td{:style => 'text-align: right;'}
+        %b= number_with_delimiter @transnational_total_files

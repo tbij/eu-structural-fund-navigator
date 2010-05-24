@@ -13,7 +13,7 @@ class ApplicationController < ActionController::Base
   # filter_parameter_logging :password
 
   def home
-    @top_priority = %w[ITALY GERMANY SPAIN GREECE BULGARIA UK] # LATVIA 
+    @top_priority = %w[FRANCE GERMANY GREECE ITALY ROMANIA SPAIN UK] # LATVIA BULGARIA  
     countries = Country.find(:all, :include => :fund_files)
 
     top_countries = countries.select {|x| @top_priority.include?(x.name) }
@@ -49,9 +49,7 @@ class ApplicationController < ActionController::Base
     @total_items = FundItem.count
     @total_loaded_files = @loaded_files_by_country.values.sum
     @total_files = @files_by_country.values.sum
-    # @total_percent_loaded = 100 * @total_loaded_files.to_f / @total_files.to_f
     @total_file_errors = @file_errors_by_country.values.sum
-    # @total_percent_errors = 100 * @total_file_errors.to_f / @total_files.to_f
 
     @top_items_by_country = @items_by_country.keys.inject({}) do |hash, name|
       hash[name] = @items_by_country[name] if @top_priority.include?(name)
@@ -72,17 +70,21 @@ class ApplicationController < ActionController::Base
       hash
     end
 
-    @other_items_count = @other_items_by_country.values.map(&:to_i).sum
-    @other_total_loaded_files = @other_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
-    @other_total_files = @other_priority.collect{|name| @files_by_country[name]}.flatten.sum
-    @other_total_file_errors = @other_priority.collect{|name| @file_errors_by_country[name]}.flatten.sum
+    @other_countries = @other_items_by_country.keys.compact.sort
+    @other_items_count =        @other_items_by_country.values.map(&:to_i).sum
+    @other_total_loaded_files = @other_countries.collect{|name| @loaded_files_by_country[name]}.flatten.sum
+    @other_total_files =        @other_countries.collect{|name|        @files_by_country[name]}.flatten.sum
+    @other_total_file_errors =  @other_countries.collect{|name|  @file_errors_by_country[name]}.flatten.sum
     @other_error_colour = (@other_total_file_errors == 0) ? 'darkgrey' : 'darkred'
 
     # other_priority_size = @other_priority.empty? ? @other_priority.size : 1000
-    other_priority_size = @other_priority.size
+    other_priority_size = @other_countries.size
 
-    @other_total_percent_loaded = @other_priority.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
-    @other_total_percent_errors = @other_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
+    @other_total_percent_loaded = @other_countries.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
+    @other_total_percent_errors = @other_countries.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
+    
+    @transnational_groups = (@other_priority.uniq - @other_countries.uniq).sort
+    @transnational_total_files = @transnational_groups.collect{|name| @files_by_country[name] || 0}.flatten.sum
   end
 
   def errors_by_country
