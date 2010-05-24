@@ -5,6 +5,7 @@ config/auth.yml
 config/passenger
 db/development_structure.sql
 .bundle
+public/*.xls
 vendor/plugins
 vendor/bundler_gems
 test

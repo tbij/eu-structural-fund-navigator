@@ -99,7 +99,7 @@
       %tr
         %td=group.gsub(/([^,]+,\s[^,]+,\s[^,]+,)/,'\1<br />&nbsp;&nbsp;')
         %td{:style => 'text-align: right; vertical-align: text-top;'}
-          = number_with_delimiter @files_by_country[group]
+          = number_with_delimiter @transnational_by_country[group]
     %tr
       %td
         %b TOTAL
