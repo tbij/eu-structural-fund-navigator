@@ -170,13 +170,13 @@ end|
 end|
     end
     File.open("#{RAILS_ROOT}/app/models/country.rb", 'w') do |f|
-      f.write %Q|class Country < ActiveRecord::Base
+      f.write %Q[class Country < ActiveRecord::Base
   has_many :fund_file_countries
   has_many :fund_files, :through => :fund_file_countries
   def national_fund_files
     fund_files.select {|f| f.is_a?(NationalFundFile)}
   end
-end|
+end]
     end
     File.open("#{RAILS_ROOT}/app/models/fund_file_country.rb", 'w') do |f|
       f.write %Q|class FundFileCountry < ActiveRecord::Base

@@ -103,13 +103,28 @@ class ApplicationController < ActionController::Base
     country = Country.find(country_id, :include => {:fund_files => :fund_items})
 
     fund_files = country.fund_files
-    # fund_files = fund_files.select {|f| f.region == 'Calabria'}
     items = fund_files.collect(&:fund_items).flatten
 
     fund_fields = [
       :region,
-      :agency
+      :program,
+      :sub_program
     ]
+
+    if country.name == 'LATVIA'
+      fund_fields = [
+        :region,
+        :agency,
+        :program,
+        :sub_program
+      ]
+    end
+
+    fund_fields.delete_if do |field|
+      non_blank_count = fund_files.collect { |fund_file| fund_file.send(field) }.select { |value| !value.blank? }.size
+      delete = (non_blank_count == 0)
+    end
+
     item_fields = [
       :district,
       :beneficiary,
@@ -120,11 +135,13 @@ class ApplicationController < ActionController::Base
       :amount_allocated_eu_funds,
       :amount_allocated_public_funds,
       :amount_allocated_private_funds,
-      :amount_allocated_private_funds,
+      :amount_allocated_voluntary_funds,
+      :amount_unknown_source,
       :year,
       :start_year,
       :sub_program_name
     ]
+
     item_fields.delete_if do |field|
       non_blank_count = items.collect { |item| item.send(field) }.select { |value| !value.blank? }.size
       delete = (non_blank_count == 0)
