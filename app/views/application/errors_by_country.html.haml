@@ -1,0 +1,10 @@
+%h1
+  Load Errors
+  = @country_name
+
+%ul
+- @files_with_errors.each do |fund_file|
+  %li
+    %b= h fund_file.parsed_data_file
+    %br
+    = fund_file.error.gsub('<','&lt;').gsub("\n",'<br />')
