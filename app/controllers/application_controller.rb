@@ -9,6 +9,8 @@ class ApplicationController < ActionController::Base
 
   before_filter :authenticate
 
+  caches_action :to_csv_file
+
   # Scrub sensitive parameters from your log
   # filter_parameter_logging :password
 
@@ -35,7 +37,7 @@ class ApplicationController < ActionController::Base
         end
       end
     end
-    @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.national_fund_files.size; h}
+    @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.national_fund_files_count; h}
     @file_errors_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count(:conditions => 'error IS NOT NULL AND type = "NationalFundFile"'); h}
     @percent_loaded_by_country = @files_by_country.keys.inject({}) do |hash, country|
       hash[country] = 100 * @loaded_files_by_country[country].to_f / @files_by_country[country].to_f
@@ -77,20 +79,19 @@ class ApplicationController < ActionController::Base
     @other_total_file_errors =  @other_countries.collect{|name|  @file_errors_by_country[name]}.flatten.sum
     @other_error_colour = (@other_total_file_errors == 0) ? 'darkgrey' : 'darkred'
 
-    # other_priority_size = @other_priority.empty? ? @other_priority.size : 1000
     other_priority_size = @other_countries.size
 
     @other_total_percent_loaded = @other_countries.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
     @other_total_percent_errors = @other_countries.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
     
-    transnational = countries.select {|c| c.transnational_fund_files.size > 0}
+    transnational = countries.select {|c| c.transnational_fund_files_count > 0}
     @transnational_groups = transnational.map(&:name).sort    
-    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.transnational_fund_files.size); h}    
+    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.transnational_fund_files_count); h}    
     @transnational_total_files = @transnational_groups.collect{|name| @transnational_by_country[name] || 0}.flatten.sum
 
-    crossborder = countries.select {|c| c.crossborder_fund_files.size > 0}
+    crossborder = countries.select {|c| c.crossborder_fund_files_count > 0}
     @crossborder_groups = crossborder.map(&:name).sort    
-    @crossborder_by_country = crossborder.inject({}) {|h,c| h[c.name] = (c.crossborder_fund_files.size); h}    
+    @crossborder_by_country = crossborder.inject({}) {|h,c| h[c.name] = (c.crossborder_fund_files_count); h}    
     @crossborder_total_files = @crossborder_groups.collect{|name| @crossborder_by_country[name] || 0}.flatten.sum
   end
 

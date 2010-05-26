@@ -34,9 +34,6 @@ class DataLoader
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
 
-    # fund_files = files_with_data.select{|f| f.parsed_data_file[/^de_/] }
-    # files_with_data = files_with_data.select{|f| f.parsed_data_file[/^de_/] }
-
     populate_database fund_files, files_with_data
   end
 
@@ -49,7 +46,6 @@ class DataLoader
   def reload_country country, master_file_name
     fund_files = load_fund_files(master_file_name)
     files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
-    # files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}.select{|f| f.parsed_data_file[/^de_/] }
     reload_files files_with_data, master_file_name
   end
 
@@ -94,9 +90,7 @@ class DataLoader
   def with_data fund_files
     fund_files.select do |f| 
       !f.parsed_data_file.blank? &&
-        !f.parsed_data_file[/no data in pdf/] &&
-        # !f.parsed_data_file[/^it_/] &&
-        !f.parsed_data_file[/pl_allregions_esf.csv/]
+        !f.parsed_data_file[/no data in file/i]
     end
   end
 
@@ -181,6 +175,18 @@ end|
   end  
   def transnational_fund_files
     fund_files.select {|f| f.is_a?(TransnationalFundFile)}
+  end
+
+  def national_fund_files_count
+    fund_files.count(:conditions => 'type = "NationalFundFile"')
+  end
+
+  def crossborder_fund_files_count
+    fund_files.count(:conditions => 'type = "CrossborderFundFile"')
+  end
+
+  def transnational_fund_files_count
+    fund_files.count(:conditions => 'type = "TransnationalFundFile"')
   end
 end]
     end
@@ -352,6 +358,7 @@ end|
     csv.sub!('EU/Nation/Region','EU_or_Nation_or_Region')
     csv.sub!('Sub-region / ','Sub-region_or_')
     fund_files = Morph.from_csv(csv, 'FundFileProxy')
+    fund_files.delete_if{|f| f.parsed_data_file && f.parsed_data_file[/no data in file/i]}
     fund_files
   end
 
