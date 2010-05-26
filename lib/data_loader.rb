@@ -299,7 +299,12 @@ end|
   def save_record record, previous_record=nil, saved_fund_file=nil
     if attribute_missing?(:beneficiary, record) && attribute_missing?(:project_title, record)
       log_previous = previous_record ? "\nprevious_record: #{previous_record.inspect}" : ''
-      log_fields = save_fund_file ? "\nfields: #{field_names(saved_fund_file).inspect}" : 'no saved_fund_file'
+      log_fields = 'no saved_fund_file'
+      if false && saved_fund_file
+         fields = field_names(saved_fund_file)
+         fields = fields.inspect
+         log_fields = "\nfields: #{fields}"
+       end
       raise "cannot load item without a beneficiary or project title: #{record.inspect} #{log_previous} #{log_fields}"
     end
     record_model.create record.morph_attributes

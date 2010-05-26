@@ -35,7 +35,7 @@ class ApplicationController < ActionController::Base
         end
       end
     end
-    @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.national_fund_files.count; h}
+    @files_by_country = countries.inject({}) {|h,c| h[c.name] = c.national_fund_files.size; h}
     @file_errors_by_country = countries.inject({}) {|h,c| h[c.name] = c.fund_files.count(:conditions => 'error IS NOT NULL AND type = "NationalFundFile"'); h}
     @percent_loaded_by_country = @files_by_country.keys.inject({}) do |hash, country|
       hash[country] = 100 * @loaded_files_by_country[country].to_f / @files_by_country[country].to_f
@@ -83,10 +83,10 @@ class ApplicationController < ActionController::Base
     @other_total_percent_loaded = @other_countries.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
     @other_total_percent_errors = @other_countries.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
     
-    transnational = countries.select {|c| (c.fund_files.count - c.national_fund_files.count) > 0}
+    transnational = countries.select {|c| (c.fund_files.count - c.national_fund_files.size) > 0}
     @transnational_groups = transnational.map(&:name).sort
     
-    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.fund_files.count - c.national_fund_files.count); h}
+    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.fund_files.count - c.national_fund_files.size); h}
     
     @transnational_total_files = @transnational_groups.collect{|name| @transnational_by_country[name] || 0}.flatten.sum
   end
