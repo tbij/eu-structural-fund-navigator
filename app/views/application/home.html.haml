@@ -1,6 +1,6 @@
 %h1 EU Funds
 
-%h2 Top Priority Countries
+%h2{:style => 'margin-top: 2em'} Top Priority Countries
 %table
   %thead
     %tr
@@ -44,7 +44,7 @@
       %td{:style => 'text-align: right;'}
         %b= number_with_delimiter @top_total_files
 
-%h2 Other Countries
+%h2{:style => 'margin-top: 2em'} Other Countries
 %table
   %thead
     %tr
@@ -88,7 +88,25 @@
       %td{:style => 'text-align: right;'}
         %b= number_with_delimiter @other_total_files
 
-%h2 Transnational
+%h2{:style => 'margin-top: 2em'} Crossborder Funds
+%table
+  %thead
+    %tr
+      %td
+      %th{:style => 'text-align: right;'} &nbsp; Total &nbsp;<br/> Sources &nbsp;      
+  %tbody
+    - @crossborder_groups.each do |group|
+      %tr
+        %td=group.gsub(/([^,]+,\s[^,]+,\s[^,]+,)/,'\1<br />&nbsp;&nbsp;')
+        %td{:style => 'text-align: right; vertical-align: text-top;'}
+          = number_with_delimiter @crossborder_by_country[group]
+    %tr
+      %td
+        %b TOTAL
+      %td{:style => 'text-align: right;'}
+        %b= number_with_delimiter @crossborder_total_files
+
+%h2{:style => 'margin-top: 2em'} Transnational Funds
 %table
   %thead
     %tr

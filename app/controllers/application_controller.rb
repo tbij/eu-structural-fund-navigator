@@ -83,12 +83,15 @@ class ApplicationController < ActionController::Base
     @other_total_percent_loaded = @other_countries.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
     @other_total_percent_errors = @other_countries.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
     
-    transnational = countries.select {|c| (c.fund_files.count - c.national_fund_files.size) > 0}
-    @transnational_groups = transnational.map(&:name).sort
-    
-    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.fund_files.count - c.national_fund_files.size); h}
-    
+    transnational = countries.select {|c| c.transnational_fund_files.size > 0}
+    @transnational_groups = transnational.map(&:name).sort    
+    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.transnational_fund_files.size); h}    
     @transnational_total_files = @transnational_groups.collect{|name| @transnational_by_country[name] || 0}.flatten.sum
+
+    crossborder = countries.select {|c| c.crossborder_fund_files.size > 0}
+    @crossborder_groups = crossborder.map(&:name).sort    
+    @crossborder_by_country = crossborder.inject({}) {|h,c| h[c.name] = (c.crossborder_fund_files.size); h}    
+    @crossborder_total_files = @crossborder_groups.collect{|name| @crossborder_by_country[name] || 0}.flatten.sum
   end
 
   def errors_by_country

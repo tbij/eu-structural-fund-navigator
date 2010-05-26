@@ -176,6 +176,12 @@ end|
   def national_fund_files
     fund_files.select {|f| f.is_a?(NationalFundFile)}
   end
+  def crossborder_fund_files
+    fund_files.select {|f| f.is_a?(CrossborderFundFile)}
+  end  
+  def transnational_fund_files
+    fund_files.select {|f| f.is_a?(TransnationalFundFile)}
+  end
 end]
     end
     File.open("#{RAILS_ROOT}/app/models/fund_file_country.rb", 'w') do |f|
