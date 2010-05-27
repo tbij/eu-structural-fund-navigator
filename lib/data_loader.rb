@@ -444,6 +444,8 @@ end|
         puts 'unknown encoding'
       when 'UTF-8'
         puts 'UTF-8 encoding'
+      when 'ASCII'
+        puts 'ASCII encoding'
       else
         puts "converting from #{charset} to UTF-8"
         content = Iconv.conv('utf-8', charset, content)
@@ -479,7 +481,6 @@ end|
     end
 
     begin
-      puts csv.size
       raw_records = FasterCSV.new csv, :headers => true
     rescue Exception => e      
       log_exception saved_fund_file, e
