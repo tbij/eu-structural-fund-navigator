@@ -61,8 +61,8 @@ class DataLoader
         saved_fund_file.save!
       else
         saved_fund_file = save_fund_file(fund_file)
-      end
-      if saved_fund_file
+      # end
+      # if saved_fund_file
         begin
           saved_fund_file.fund_items.each {|item| item.destroy}
           records = load_fund_file(fund_file, saved_fund_file) 
@@ -81,8 +81,8 @@ class DataLoader
         rescue Exception => e
           log_exception saved_fund_file, e
         end
-      else
-        raise "can't find fund file: #{fund_file.inspect}"
+      # else
+        # raise "can't find fund file: #{fund_file.inspect}"
       end
     end
   end
