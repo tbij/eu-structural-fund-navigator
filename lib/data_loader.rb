@@ -90,7 +90,7 @@ class DataLoader
   def with_data fund_files
     fund_files.select do |f| 
       !f.parsed_data_file.blank? &&
-        !f.parsed_data_file[/no data in file/i]
+        !f.parsed_data_file[/no data/i]
     end
   end
 
@@ -563,6 +563,10 @@ end|
         $1.gsub(',','').to_i
       when /^((\d|\,)*\d\d\d)( |$)/
         $1.gsub(',','').to_i
+      when /^((\d|\s| )*\,\d\d)( |$)/
+        $1.gsub(/\s/,'').gsub(' ','').sub(',','.').to_i
+      when /^((\d|\s| )*)( |$)/
+        $1.gsub(/\s/,'').gsub(' ','').to_i
       end
     end
   end
