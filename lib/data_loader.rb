@@ -40,16 +40,16 @@ class DataLoader
   def reload_file parsed_data_file_name, master_file_name
     fund_files = load_fund_files(master_file_name)
     files_with_data = with_data(fund_files).select {|f| f.parsed_data_file.strip == parsed_data_file_name.strip }
-    reload_files files_with_data, master_file_name
+    reload_files files_with_data, master_file_name, true
   end
 
   def reload_country country, master_file_name
     fund_files = load_fund_files(master_file_name)
     files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
-    reload_files files_with_data, master_file_name
+    reload_files files_with_data, master_file_name, false
   end
 
-  def reload_files files_with_data, file_name
+  def reload_files files_with_data, file_name, force_reload
     files_with_data.each do |fund_file|
       model = fund_file_model(fund_file)
       saved_fund_file = model.find_by_parsed_data_file(fund_file.parsed_data_file)
@@ -61,8 +61,10 @@ class DataLoader
         saved_fund_file.save!
       else
         saved_fund_file = save_fund_file(fund_file)
-      # end
-      # if saved_fund_file
+        force_reload = true
+      end
+
+      if force_reload && saved_fund_file
         begin
           saved_fund_file.fund_items.each {|item| item.destroy}
           records = load_fund_file(fund_file, saved_fund_file) 
@@ -81,8 +83,6 @@ class DataLoader
         rescue Exception => e
           log_exception saved_fund_file, e
         end
-      # else
-        # raise "can't find fund file: #{fund_file.inspect}"
       end
     end
   end
