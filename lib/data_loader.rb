@@ -104,7 +104,7 @@ class DataLoader
     fund_items_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_items.rb").first
     text = IO.read(fund_items_migration)
     File.open(fund_items_migration, 'w') do |f|
-      f.write text.sub(%Q|t.timestamps
+      f.write text.sub('t.string :subcontractor','t.text :subcontractor').sub('t.string :description','t.text :description').sub(%Q|t.timestamps
     end|, 
     %Q|t.timestamps
     end
@@ -165,7 +165,7 @@ end|
     end
     File.open("#{RAILS_ROOT}/app/models/country.rb", 'w') do |f|
       f.write %Q[class Country < ActiveRecord::Base
-  has_many :fund_file_countries
+  has_many :fund_file_countries, :dependent => :delete_all
   has_many :fund_files, :through => :fund_file_countries
   def national_fund_files
     fund_files.select {|f| f.is_a?(NationalFundFile)}
