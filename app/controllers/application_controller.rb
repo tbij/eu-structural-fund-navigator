@@ -99,7 +99,7 @@ class ApplicationController < ActionController::Base
     name = params[:country_name]
     country = Country.find_by_name(name, :include => :fund_files)
     @country_name = name.split.map(&:capitalize).join(' ')
-    @files_with_errors = country.fund_files.select(&:error)
+    @files_with_errors = country.fund_files.compact.select(&:error)
   end
   
   def to_csv_file
