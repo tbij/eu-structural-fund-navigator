@@ -15,6 +15,9 @@ class ApplicationController < ActionController::Base
   # filter_parameter_logging :password
 
   def home
+  end
+
+  def dashboard
     @top_priority = %w[FRANCE GERMANY GREECE ITALY ROMANIA SPAIN UK] # LATVIA BULGARIA  
     countries = Country.find(:all, :include => :fund_files)
 

@@ -9,6 +9,8 @@ gem 'fastercsv'
 gem 'compass'
 gem 'compass-susy-plugin'
 gem 'cmess'
+gem 'sunspot'
+gem 'sunspot_rails'
 
 # roo + dependencies
 gem 'roo'
