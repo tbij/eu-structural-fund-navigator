@@ -542,7 +542,7 @@ end|
     puts "all_amounts_sum: #{all_amounts_sum}"
 
     if all_amounts_sum == 0 
-      unless ['de_saarland_esf.csv'].include?(name)
+      unless ['de_saarland_esf.csv','be_projets_axe1_esf.xls'].include?(name)
         log_error(saved_fund_file, "all amounts are zero for all items in this file")
         return nil
       end
