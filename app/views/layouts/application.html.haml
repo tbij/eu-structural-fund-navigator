@@ -8,9 +8,10 @@
   %body
     #page
       #header
-        #tbij_logo= image_tag '/images/tbij_logo.jpg', :height => '20px'
-        #ft_logo= image_tag '/images/ft_logo.jpg', :height => '13px'
         %h1#banner EU Funds
+        #logos
+          #tbij_logo= image_tag '/images/tbij_logo.jpg', :height => '20px'
+          #ft_logo= image_tag '/images/ft_logo.jpg', :height => '13px'        
       #content
         = @content_for_layout
       #footer

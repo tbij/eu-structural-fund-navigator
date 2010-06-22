@@ -19,7 +19,7 @@ class ApplicationController < ActionController::Base
   
   def translate_and_search
     if query = params['q']
-      terms = translations(query)
+      terms = query.include?(' OR ') ? query.split(' OR ').compact.map(&:strip).uniq : translations(query)
       results = terms.collect do |term|
         do_search term
       end
@@ -28,9 +28,14 @@ class ApplicationController < ActionController::Base
 
       @results = []
       results.each {|result| result.each_hit_with_result {|hit, item| @results << item} }
-
+      
       @query = terms.join(' OR ')
-      render :template => 'application/search'
+      params['q'] = @query
+      if params['f'] == 'csv'
+        output_csv(@results)
+      else
+        render :template => 'application/search'
+      end
     else
       render :template => 'application/home'
     end
@@ -46,6 +51,9 @@ class ApplicationController < ActionController::Base
       result.each_hit_with_result {|hit, item| @results << item}
       
       @query = query
+      if params['f'] == 'csv'
+        output_csv(@results)
+      end
     else
       render :template => 'application/home'
     end
@@ -158,13 +166,19 @@ class ApplicationController < ActionController::Base
     fund_files = country.fund_files
     items = fund_files.collect(&:fund_items).flatten
 
+    output_csv items, fund_files, country
+  end
+
+  private
+
+  def output_csv items, fund_files=nil, country=nil
+    fund_files = items.collect(&:fund_file).uniq unless fund_files
     fund_fields = [
       :region,
       :program,
       :sub_program
     ]
-
-    if country.name == 'LATVIA'
+    if country && country.name == 'LATVIA'
       fund_fields = [
         :region,
         :agency,
@@ -172,7 +186,6 @@ class ApplicationController < ActionController::Base
         :sub_program
       ]
     end
-
     fund_fields.delete_if do |field|
       non_blank_count = fund_files.collect { |fund_file| fund_file.send(field) }.select { |value| !value.blank? }.size
       delete = (non_blank_count == 0)
@@ -215,7 +228,6 @@ class ApplicationController < ActionController::Base
     render :text => output, :content_type => "text/csv"
   end
 
-  private
   def authenticate
     auth = YAML.load_file(RAILS_ROOT+'/config/auth.yml')
     auth.symbolize_keys!
@@ -226,11 +238,10 @@ class ApplicationController < ActionController::Base
 
   def translations term
     translator = Google::Translator.new
-
     translations = LANGUAGE_CODES.collect do |code|
       translator.translate('en', code, term)
     end
-    [term] + translations
+    ([term] + translations).uniq
   end
   
   def summarize results, facet

@@ -1,6 +1,6 @@
 %p Discover who gets what from the EU Structural Funds
 #search
-  - form_tag(search_url, :method => :get) do
-    %span.query= text_field_tag :q, h(@query)
-    %span.submit= submit_tag 'Search'
+  - form_tag(translate_and_search_url, :method => :get) do
+    %span.query_short= text_field_tag :q, h(@query)
+    %span.submit_short= submit_tag 'Search'
 

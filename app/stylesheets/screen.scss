@@ -23,68 +23,88 @@
 
 /* Styles --------------------------------------------------------------*/
 
-#tbij_logo, #ft_logo {
-  @include full;
+#header {
+  @include columns(12);
   @include alpha;
+  @include leader(2);
+  @include trailer(1);
+  
+  h1#banner {
+    @include columns(6,12);
+  }
+  #logos {
+    @include columns(5,12);
+    @include omega(5);
+    #tbij_logo {
+      @include leader(.1);
+    }
+    #ft_logo {
+      @include leader(.5);
+    }
+  }
 }
-#tbij_logo {
-  @include leader(.7);
-}
-#ft_logo {
-  @include leader(.1);
-}
-
-h1#banner {
-  @include full;
-  @include leader(.5);
-  @include trailer(.5);
-  @include alpha;
-}
-
 #content {
-  @include columns(10);
-  @include suffix(2);
+  @include columns(12);
   @include alpha;
   
   ul {
     @include no-style-list;
   }
 
+  .to_csv {
+    @include columns(2, 12);
+    @include omega(2);
+  }
   #search {
-    @include columns(10);
+    @include columns(12);
     @include trailer(1);
     span.query {
-      @include columns(7,10);
+      @include columns(10,12);
+    }
+    span.query_short {
+      @include columns(4,12);
     }
     span.submit {
-      @include columns(3,10);
-      @include omega(3);
+      @include columns(2,12);
+      @include omega(2);
+    }
+    span.submit_short {
+      @include columns(2,12);
     }
   }
   #facets {
-    @include columns(10);
+    @include columns(12);
     @include trailer(1);
   }
   .facet_row {
     font-size: 0.9em;
   }
+  .country {
+    @include columns(2, 12);
+  }
   .countries {
-    @include columns(3, 10);
-    
+    .countries1 {
+      @include columns(2, 12);
+    }
+    .countries2 {
+      @include columns(2, 12);
+      @include suffix(8);
+      @include omega(12);
+    }    
   }
   .regions {
     .regions1 {
-      @include columns(3, 10);
+      @include columns(4, 12);
     }
     .regions2 {
-      @include columns(3, 10);
-      @include suffix(1);
-      @include omega(3);
+      @include columns(4, 12);
+      @include suffix(2);
+      @include omega(4);
     }
   }
   .items {
-    @include columns(10, 10);
-    @include omega(10);
+    @include columns(12, 12);
+    @include omega(12);
   }
   
 }
