@@ -16,6 +16,28 @@ class ApplicationController < ActionController::Base
 
   def home
   end
+  
+  def search
+    query = params['q']
+    # query = query.split(/OR/i) if query[/OR/i]
+    if query
+      @result = FundItem.search(:include => [:fund_file]) do
+        keywords query
+        if params[:fund_region]
+          with :fund_region, params[:fund_region]  
+          facet :fund_country, :fund_region
+        elsif params[:fund_country]
+          with :fund_country, params[:fund_country]  
+          facet :fund_country, :fund_region
+        else
+          facet :fund_country, :fund_region
+        end
+      end
+      @query = query
+    else
+      render :template => 'application/home'
+    end
+  end
 
   def dashboard
     @top_priority = %w[FRANCE GERMANY GREECE ITALY ROMANIA SPAIN UK] # LATVIA BULGARIA  

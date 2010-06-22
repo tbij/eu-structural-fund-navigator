@@ -126,9 +126,42 @@ class DataLoader
   def add_associations
     File.open("#{RAILS_ROOT}/app/models/fund_item.rb", 'w') do |f|
       f.write %Q|class FundItem < ActiveRecord::Base
-  belongs_to :fund_file
 
+  belongs_to :fund_file
   before_validation :set_year
+
+=begin
+  acts_as_solr :fields => [{:fund_name => :facet}, {:country  => :facet}, {:region => :facet}, :beneficiary, :project_title, :description],
+               :facets => [:fund_name, :country, :region]
+=end
+
+  searchable :auto_index => false do
+    text :beneficiary, :project_title, :description
+
+    string :eu_fund_name do 
+      fund_name
+    end
+    string :fund_country do 
+      country
+    end
+    string :fund_region do 
+      region
+    end
+    
+    integer :fund_file_id
+  end
+
+  def fund_name
+    fund_file.program.blank? ? "" : fund_file.program.upcase
+  end
+
+  def country
+    fund_file.countries.first.name.upcase
+  end
+
+  def region
+    fund_file.region.sub(/all regions/i, 'All regions')
+  end
   
   def set_year
     if year.blank?

@@ -9,6 +9,7 @@ gem 'fastercsv'
 gem 'compass'
 gem 'compass-susy-plugin'
 gem 'cmess'
+# gem 'acts_as_solr'
 gem 'sunspot'
 gem 'sunspot_rails'
 

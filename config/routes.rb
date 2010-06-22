@@ -46,6 +46,7 @@ ActionController::Routing::Routes.draw do |map|
   map.root :controller => "application", :action => 'home'
   
   map.dashboard 'dashboard', :controller => "application", :action => 'dashboard'
+  map.search 'search', :controller => 'application', :action => 'search'
 
   # See how all your routes lay out with "rake routes"
 

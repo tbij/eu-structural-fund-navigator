@@ -1,0 +1,10 @@
+- if facet
+  %ul.facet
+    - facet.each do |row|
+      - if row
+        %li.facet_row
+          - if total == 1          
+            = h(row.value)
+          - else
+            = link_to h(row.value), params.merge(facet_name => row.value)
+            %span.count== (#{row.count})
