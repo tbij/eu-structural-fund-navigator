@@ -12,6 +12,7 @@ gem 'cmess'
 # gem 'acts_as_solr'
 gem 'sunspot'
 gem 'sunspot_rails'
+gem 'google-translate'
 
 # roo + dependencies
 gem 'roo'

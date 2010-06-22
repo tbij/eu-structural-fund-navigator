@@ -3,18 +3,21 @@
   - form_tag(search_url, :method => :get) do
     %span.query= text_field_tag :q, h(@query)
     %span.submit= submit_tag 'Search'
+  - form_tag(translate_and_search_url, :method => :get) do
+    %span.query= text_field_tag :q, h(@query)
+    %span.submit= submit_tag 'Translate -> Search'
 
 #facets
   .countries
     %p Countries
-    = render :partial => 'facet', :object => @result.facet(:fund_country).rows, :locals => {:facet_name => :fund_country, :total => @result.facet(:fund_country).rows.size}
-  - if @result.facet(:fund_country).rows.size == 1
+    = render :partial => 'facet', :object => @countries, :locals => {:facet_name => :fund_country, :total => @countries.size}
+  - if @countries.size == 1
     .regions
       %p Regions
       .regions1
-        = render :partial => 'facet', :object => @result.facet(:fund_region).rows.in_groups(2).first, :locals => {:facet_name => :fund_region, :total => @result.facet(:fund_region).rows.size}
+        = render :partial => 'facet', :object => @regions.in_groups(2).first, :locals => {:facet_name => :fund_region, :total => @regions.size}
       .regions2
-        = render :partial => 'facet', :object => @result.facet(:fund_region).rows.in_groups(2).last, :locals => {:facet_name => :fund_region, :total => @result.facet(:fund_region).rows.size}
+        = render :partial => 'facet', :object => @regions.in_groups(2).last, :locals => {:facet_name => :fund_region, :total => @regions.size}
 
 .items
   %table
@@ -27,7 +30,7 @@
         %th Project Title
         %th Description
     %tbody
-      - @result.each_hit_with_result do |hit, item|
+      - @results.each do |item|
         %tr
           %td=item.fund_name
           %td=item.fund_file.countries.first.name

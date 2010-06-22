@@ -17,25 +17,49 @@ class ApplicationController < ActionController::Base
   def home
   end
   
-  def search
-    query = params['q']
-    # query = query.split(/OR/i) if query[/OR/i]
-    if query
-      @result = FundItem.search(:include => [:fund_file]) do
-        keywords query
-        if params[:fund_region]
-          with :fund_region, params[:fund_region]  
-          facet :fund_country, :fund_region
-        elsif params[:fund_country]
-          with :fund_country, params[:fund_country]  
-          facet :fund_country, :fund_region
-        else
-          facet :fund_country, :fund_region
-        end
+  def translate_and_search
+    if query = params['q']
+      terms = translations(query)
+      results = terms.collect do |term|
+        do_search term
       end
+      @countries = summarize(results, :fund_country)
+      @regions   = summarize(results, :fund_region)
+
+      @results = []
+      results.each {|result| result.each_hit_with_result {|hit, item| @results << item} }
+
+      @query = terms.join(' OR ')
+      render :template => 'application/search'
+    else
+      render :template => 'application/home'
+    end
+  end
+
+  def search    
+    if query = params['q']
+      result = do_search(query)
+      @countries = result.facet(:fund_country).rows
+      @regions = result.facet(:fund_region).rows
+      
+      @results = []
+      result.each_hit_with_result {|hit, item| @results << item}
+      
       @query = query
     else
       render :template => 'application/home'
+    end
+  end
+
+  def do_search term
+    FundItem.search(:include => [:fund_file]) do
+      keywords term
+      if params[:fund_region]
+        with :fund_region, params[:fund_region]  
+      elsif params[:fund_country]
+        with :fund_country, params[:fund_country]  
+      end
+      facet :fund_country, :fund_region
     end
   end
 
@@ -199,4 +223,48 @@ class ApplicationController < ActionController::Base
       id == auth[:user] && password == auth[:password]
     end
   end
+
+  def translations term
+    translator = Google::Translator.new
+
+    translations = LANGUAGE_CODES.collect do |code|
+      translator.translate('en', code, term)
+    end
+    [term] + translations
+  end
+  
+  def summarize results, facet
+    rows = results.map {|x| x.facet(facet).rows }.flatten
+    rows = rows.group_by(&:value)
+    Struct.new("Facet", :value, :count)
+    rows.keys.collect do |value|
+      count = rows[value].collect {|r| r.count}.sum
+      Struct::Facet.new value, count
+    end
+  end
+
+  LANGUAGE_CODES = [
+      'bg', # BULGARIA
+      'cs', # CZECH REPUBLIC
+      'da', # DENMARK
+      'et', # ESTONIA
+      'fi', # FINLAND
+      'fr', # FRANCE, BELGIUM, LUXEMBOURG
+      'de', # GERMANY, AUSTRIA
+      'el', # GREECE, CYPRUS
+      'hu', # HUNGARY
+      'it', # ITALY
+      'lv', # LATVIA
+      'lt', # LITHUANIA
+      'nl', # NETHERLANDS
+      'pl', # POLAND
+      'pt', # PORTUGAL
+      'ro', # ROMANIA
+      'sk', # SLOVAKIA
+      'sl', # SLOVENIA
+      'es', # SPAIN
+      'sv'  # SWEDEN
+      # 'en'  #'UK, IRELAND, MALTA
+  ]
+
 end

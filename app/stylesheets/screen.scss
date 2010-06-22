@@ -57,8 +57,7 @@ h1#banner {
       @include columns(7,10);
     }
     span.submit {
-      @include columns(2,10);
-      @include suffix(1);
+      @include columns(3,10);
       @include omega(3);
     }
   }
