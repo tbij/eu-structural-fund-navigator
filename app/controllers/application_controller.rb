@@ -1,3 +1,4 @@
+require 'google_translate'
 require 'fastercsv'
 require 'spreadsheet'
 # Filters added to this controller apply to all controllers in the application.
@@ -28,12 +29,13 @@ class ApplicationController < ActionController::Base
 
       @results = []
       results.each {|result| result.each_hit_with_result {|hit, item| @results << item} }
-      
+      # @results = @results[0,5]
       @query = terms.join(' OR ')
       params['q'] = @query
       if params['f'] == 'csv'
         output_csv(@results)
       else
+        @search_results = true
         render :template => 'application/search'
       end
     else
@@ -53,6 +55,8 @@ class ApplicationController < ActionController::Base
       @query = query
       if params['f'] == 'csv'
         output_csv(@results)
+      else
+        @search_results = true
       end
     else
       render :template => 'application/home'
@@ -239,8 +243,13 @@ class ApplicationController < ActionController::Base
   def translations term
     translator = Google::Translator.new
     translations = LANGUAGE_CODES.collect do |code|
-      translator.translate('en', code, term)
-    end
+      begin
+        translator.translate('en', code, term)
+      rescue Exception => e
+        logger.error("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
+        nil
+      end
+    end.compact
     ([term] + translations).uniq
   end
   

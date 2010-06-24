@@ -43,6 +43,12 @@
     }
   }
 }
+#footer {
+  #google_attribution {
+    font-size: 0.7em;
+    color: rgb(103, 103, 103);
+  }
+}
 #content {
   @include columns(12);
   @include alpha;
@@ -54,6 +60,9 @@
   .to_csv {
     @include columns(2, 12);
     @include omega(2);
+  }
+  .translation {
+    color: #666;
   }
   #search {
     @include columns(12);
@@ -106,5 +115,11 @@
     @include columns(12, 12);
     @include omega(12);
   }
-  
+  .amount {
+    text-align: right;
+    width: 7em;
+  }
+  td {
+    font-size: 0.9em;
+  }
 }

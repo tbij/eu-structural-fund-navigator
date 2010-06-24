@@ -175,6 +175,68 @@ class DataLoader
       end
     end
   end
+
+  def language_code
+    case country
+      when 'AUSTRIA'
+        'de'
+      when 'BELGIUM'
+        'fr'
+      when 'BULGARIA'
+        'bg'
+      when 'CYPRUS'
+        'el'
+      when 'CZECH REPUBLIC'
+        'cs'
+      when 'DENMARK'
+        'da'
+      when 'ESTONIA'
+        'et'
+      when 'FINLAND'
+        'fi'
+      when 'FRANCE'
+        'fr'
+      when 'GERMANY'
+        'de'
+      when 'GREECE'
+        'el'
+      when 'HUNGARY'
+        'hu'
+      when 'IRELAND'
+        'en'
+      when 'ITALY'
+        'it'
+      when 'LATVIA'
+        'lv'
+      when 'LITHUANIA'
+        'lt'
+      when 'LUXEMBOURG'
+        'fr'
+      when 'MALTA'
+        'en'
+      when 'NETHERLANDS'
+        'nl'
+      when 'POLAND'
+        'pl'
+      when 'PORTUGAL'
+        'pt'
+      when 'ROMANIA'
+        'ro'
+      when 'SLOVAKIA'
+        'sk'
+      when 'SLOVENIA'
+        'sl'
+      when 'SPAIN'
+        'es'
+      when 'SWEDEN'
+        'sv'
+      when 'UK'
+        'en'
+      else
+        raise "unknown language for: #{country}"
+    end
+  end
+
 end|
     end
     File.open("#{RAILS_ROOT}/app/models/national_fund_file.rb", 'w') do |f|

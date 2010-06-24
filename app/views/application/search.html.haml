@@ -24,28 +24,45 @@
       .regions2
         = render :partial => 'facet', :object => @regions.in_groups(2).last, :locals => {:facet_name => :fund_region, :total => @regions.size}
 
-- if @results.size > 0
+- if @results.size == 0
+  %p No results found.
+- else
   %p.to_csv= link_to 'Save to CSV', params.merge('f' => 'csv')
-.items
-  %table
-    %thead
-      %tr
-        %th Fund
-        %th
-          Country
-          %br
-          &amp; Region
-        %th Beneficiary
-        %th Project
-        %th Description
-    %tbody
-      - @results.each do |item|
+  .items
+    %table
+      %thead
         %tr
-          %td=item.fund_name.to_s.strip
-          %td
-            =item.fund_file.countries.first.name.to_s.strip
+          %th Fund
+          %th
+            Country
             %br
-            =item.fund_file.region.to_s.strip
-          %td=item.beneficiary.to_s.strip
-          %td=item.project_title.to_s.strip
-          %td=item.description.to_s.strip
+            &amp; Region
+          %th Beneficiary
+          %th
+            Project
+            %br
+            &amp; Description
+          %th
+            Amount
+            %br
+            EU Funds
+      %tbody
+        - @results.each_with_index do |item, index|
+          %tr
+            %td= h item.fund_name.to_s.strip
+            %td
+              = h item.fund_file.countries.first.name.to_s.strip
+              %br
+              = h item.fund_file.region.to_s.strip
+            %td= h item.beneficiary.to_s.strip
+            %td{:class => item.language_code}
+              %span.description{:id => "description_#{index}"}
+                - if item.project_title.blank?
+                  = h item.description.to_s.strip
+                - else
+                  = h item.project_title.to_s.strip
+                  %br
+                  = h item.description.to_s.strip
+              %br
+              %span.translation{:id => "translation_#{index}"}
+            %td.amount= item.amount_allocated_eu_funds ? "#{number_with_delimiter(item.amount_allocated_eu_funds)} #{h(item.currency)}" : ''
