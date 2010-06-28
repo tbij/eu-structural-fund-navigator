@@ -234,7 +234,7 @@ class DataLoader
       when 'UK'
         'en'
       else
-        raise "unknown language for: | + '#{country}' + %Q|
+        raise "unknown language for: | + '#{country}' + %Q|"
     end
   end
 
