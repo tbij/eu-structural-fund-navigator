@@ -126,7 +126,7 @@ class DataLoader
 
   def add_associations
     File.open("#{RAILS_ROOT}/app/models/fund_item.rb", 'w') do |f|
-      f.write %Q|class FundItem < ActiveRecord::Base
+      text = %Q|class FundItem < ActiveRecord::Base
 
   belongs_to :fund_file
   before_validation :set_year
@@ -239,6 +239,7 @@ class DataLoader
   end
 
 end|
+      f.write text
     end
     File.open("#{RAILS_ROOT}/app/models/national_fund_file.rb", 'w') do |f|
       f.write %Q|class NationalFundFile < FundFile
