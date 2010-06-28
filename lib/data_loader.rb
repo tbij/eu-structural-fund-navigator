@@ -656,6 +656,8 @@ end|
 
   def convert_value value
     unless value.blank?
+      value = value.gsub(/(\d)\s+(\d)/, '\1\2')
+      
       if value[/^([^\d]+)\d/]
         value = value.sub($1,'')
       end
@@ -669,9 +671,9 @@ end|
       when /^((\d|\,)*\d\d\d)( |$)/
         $1.gsub(',','').to_i
       when /^((\d|\s| )*\,\d\d)( |$)/
-        $1.gsub(/\s/,'').gsub(' ','').sub(',','.').to_i
+        $1.gsub(/\s/,'').sub(',','.').to_i
       when /^((\d|\s| )*)( |$)/
-        $1.gsub(/\s/,'').gsub(' ','').to_i
+        $1.gsub(/\s/,'').to_i
       end
     end
   end
