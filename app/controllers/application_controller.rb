@@ -1,4 +1,4 @@
-require 'google_translate' unless RAILS_ENV == 'test'
+# require 'google_translate' unless RAILS_ENV == 'test'
 require 'fastercsv'
 
 # Filters added to this controller apply to all controllers in the application.
