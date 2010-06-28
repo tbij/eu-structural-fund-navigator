@@ -1,6 +1,6 @@
 %p Discover who gets what from the EU Structural Funds
 #search
-  - if false # form_tag(search_url, :method => :get) do
+  - false && form_tag(search_url, :method => :get) do
     %span.query= text_field_tag :q, h(@query)
     %span.submit= submit_tag 'Search'
   - form_tag(translate_and_search_url, :method => :get) do
@@ -28,6 +28,10 @@
   %p No results found.
 - else
   %p.to_csv= link_to 'Save to CSV', params.merge('f' => 'csv')
+  .result_info
+    == page #{@current_page} of #{@total_pages}
+    \-
+    == #{number_with_delimiter(@total_results)} results
   .items
     %table
       %thead

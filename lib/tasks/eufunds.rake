@@ -35,4 +35,12 @@ namespace :eufunds do
     puts "saving: #{csv_file}"
     File.open(csv_file,'w') {|f| f.write csv}
   end
+  
+  task :unknown => :environment do
+    a = FundItem.find_by_sql('select * from fund_items where amount_unknown_source is not null')
+    x = a.collect(&:fund_file_id).uniq
+    f = FundFile.find(x)
+    files = f.collect{|i| i.country + ', ' + i.region.strip + ': ' + i.parsed_data_file}.sort
+    File.open(RAILS_ROOT + '/files_with_unknown_amount.txt', 'w') {|f| f.write files.join("\n")}
+  end
 end

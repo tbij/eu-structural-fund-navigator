@@ -152,7 +152,7 @@ describe DataLoader do
 
   describe 'when getting csv' do
     it 'should convert xls to csv' do
-      converted = @loader.convert(RAILS_ROOT+'/spec/fixtures/data/pl/pl_in_progress_erdf.xls')
+      converted = @loader.convert_excel_to_csv(RAILS_ROOT+'/spec/fixtures/data/pl/pl_in_progress_erdf.xls')
       converted.should == pl_csv
     end
 
@@ -160,7 +160,7 @@ describe DataLoader do
       name = 'pl_in_progress_erdf.xls'
       file_name = RAILS_ROOT+'/DATA/pl/'+name
       File.should_receive(:exist?).with(file_name).and_return true
-      @loader.should_receive(:convert).with(file_name).and_return pl_csv
+      @loader.should_receive(:convert_excel_to_csv).with(file_name).and_return pl_csv
       @loader.csv_from_file file_name
     end
 
@@ -210,17 +210,17 @@ describe DataLoader do
   describe 'when creating records' do
     before do
       file_name = RAILS_ROOT+'/DATA/pl/'+@data_file
-  
       @loader.stub!(:csv_from_file).with(file_name).and_return pl_csv
       @loader.stub!(:field_names).with(@fund_file).and_return [
         [:beneficiary, "Nazwa beneficjenta"],
         [:project_title, "Tytuł projektu"],
-        [:program_name, "Program Operacyjny"]
+        [:program_name, "Program Operacyjny"],
+        [:amount_unknown, "Dofinansowanie publiczne"]
       ]
     end
 
     it 'should create a record for each row in fund file' do
-      records = @loader.load_fund_file @fund_file, @saved_fund_file
+      records = @loader.load_fund_file(@fund_file, @saved_fund_file)
       records.size.should == 2
       record = records.first
       record.fund_file_id.should == @saved_fund_file_id
@@ -250,7 +250,7 @@ describe DataLoader do
 
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
-      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
       lines[1].should == %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
     end
 

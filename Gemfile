@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem 'rails', '2.3.5'
+gem 'rails', '2.3.8'
 gem 'haml'
 gem 'resource_controller'
 gem 'mysql'
@@ -12,15 +12,22 @@ gem 'cmess'
 # gem 'acts_as_solr'
 gem 'sunspot'
 gem 'sunspot_rails'
-gem 'google-translate'
+gem 'will_paginate'
+
+group :development do
+  gem 'google-translate'
+end
+group :production do
+  gem 'google-translate'
+end
 
 # roo + dependencies
 gem 'roo'
 gem 'rubyzip'
 gem 'spreadsheet'
+# gem 'spreadsheet-excel'
 # gem 'to_csv'
 gem 'google-spreadsheet-ruby'
-
 
 group :test do
   gem 'rspec'

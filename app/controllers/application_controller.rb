@@ -1,9 +1,8 @@
-require 'google_translate'
+require 'google_translate' unless RAILS_ENV == 'test'
 require 'fastercsv'
-require 'spreadsheet'
+
 # Filters added to this controller apply to all controllers in the application.
 # Likewise, all the methods added will be available for all controllers.
-
 class ApplicationController < ActionController::Base
   helper :all # include all helpers, all the time
   protect_from_forgery # See ActionController::RequestForgeryProtection for details
@@ -20,20 +19,45 @@ class ApplicationController < ActionController::Base
   
   def translate_and_search
     if query = params['q']
-      terms = query.include?(' OR ') ? query.split(' OR ').compact.map(&:strip).uniq : translations(query)
-      results = terms.collect do |term|
-        do_search term
-      end
+      terms = query.include?(' OR ') ? query.split(' OR ').compact.map(&:strip).map(&:downcase).uniq : translations(query)
+      results = terms.collect { |term| do_search(term) }
+
       @countries = summarize(results, :fund_country)
       @regions   = summarize(results, :fund_region)
 
       @results = []
-      results.each {|result| result.each_hit_with_result {|hit, item| @results << item} }
+      @search = Search.new
+      @search.total = 0
+      
+      require 'will_paginate'
+      results.each do |result|
+        @search.total += result.total
+        @search.current_page = result.hits.current_page
+        @search.per_page = result.hits.per_page
+        @search.total_pages = @search.total / @search.per_page
+
+        result.each_hit_with_result do |hit, item|
+          @results << item
+        end
+      end
+      @results = @results.uniq
+
+      @total_results = @search.total
+      @current_page = @search.current_page
+      @total_pages = @search.total_pages
       # @results = @results[0,5]
       @query = terms.join(' OR ')
       params['q'] = @query
+
       if params['f'] == 'csv'
-        output_csv(@results)
+        results = terms.collect { |term| do_search(term, @total_results) }
+        @results = []
+        results.each do |result|
+          result.each_hit_with_result do |hit, item|
+            @results << item
+          end
+        end
+        output_csv(@results.uniq)
       else
         @search_results = true
         render :template => 'application/search'
@@ -51,6 +75,9 @@ class ApplicationController < ActionController::Base
       
       @results = []
       result.each_hit_with_result {|hit, item| @results << item}
+      @total_results = result.total
+      @current_page = result.hits.current_page
+      @total_pages = result.hits.total_pages
       
       @query = query
       if params['f'] == 'csv'
@@ -63,15 +90,20 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def do_search term
+  def do_search term, per_page=15
+    region = params[:fund_region]
+    country = params[:fund_country]
+    page = params[:page] || 1
+
     FundItem.search(:include => [:fund_file]) do
       keywords term
-      if params[:fund_region]
-        with :fund_region, params[:fund_region]  
-      elsif params[:fund_country]
-        with :fund_country, params[:fund_country]  
+      if region
+        with :fund_region, region
+      elsif country
+        with :fund_country, country
       end
       facet :fund_country, :fund_region
+      paginate :page => page, :per_page => per_page
     end
   end
 
@@ -165,25 +197,31 @@ class ApplicationController < ActionController::Base
   
   def to_csv_file
     country_id = params[:country_id]
-    country = Country.find(country_id, :include => {:fund_files => :fund_items})
-
-    fund_files = country.fund_files
-    items = fund_files.collect(&:fund_items).flatten
+    if country_id.to_i == 0
+      fund_files = FundFile.find(:all, :include => [:fund_items])
+      items = fund_files.collect(&:fund_items).flatten
+    else
+      country = Country.find(country_id, :include => {:fund_files => :fund_items})  
+      fund_files = country.fund_files
+      items = fund_files.collect(&:fund_items).flatten
+    end
 
     output_csv items, fund_files, country
   end
 
   private
 
-  def output_csv items, fund_files=nil, country=nil
+  def get_csv items, fund_files=nil, country=nil
     fund_files = items.collect(&:fund_file).uniq unless fund_files
     fund_fields = [
+      :country,
       :region,
       :program,
       :sub_program
     ]
-    if country && country.name == 'LATVIA'
+    if country && country.name.upcase == 'LATVIA'
       fund_fields = [
+        :country,
         :region,
         :agency,
         :program,
@@ -228,8 +266,12 @@ class ApplicationController < ActionController::Base
         csv << data
       end
     end
-
-    render :text => output, :content_type => "text/csv"
+  end
+    
+  def output_csv items, fund_files=nil, country=nil
+    csv_string = get_csv(items, fund_files, country)
+    send_data csv_string, :type => "text/plain", :filename=>"items.csv", :disposition => 'attachment'
+    # render :text => output, :content_type => "text/csv"
   end
 
   def authenticate
@@ -250,7 +292,7 @@ class ApplicationController < ActionController::Base
         nil
       end
     end.compact
-    ([term] + translations).uniq
+    ([term] + translations).map(&:strip).map(&:downcase).uniq
   end
   
   def summarize results, facet

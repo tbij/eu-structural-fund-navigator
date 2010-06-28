@@ -1,4 +1,5 @@
 require 'fastercsv'
+require "google_spreadsheet"
 require 'roo'
 require 'morph'
 require 'cmess/guess_encoding'
@@ -256,6 +257,11 @@ end|
   has_many :fund_items
   has_many :fund_file_countries
   has_many :countries, :through => :fund_file_countries
+
+  def country
+    countries.first.name.upcase
+  end
+
 end|
     end
     File.open("#{RAILS_ROOT}/app/models/country.rb", 'w') do |f|
@@ -517,7 +523,9 @@ end|
   end
 
   def log_exception fund_file, e
-    log_error fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+    message = "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}"
+    puts message
+    log_error fund_file, message
   end
 
   def log_error fund_file, message
