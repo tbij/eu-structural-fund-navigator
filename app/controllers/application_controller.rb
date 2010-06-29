@@ -20,6 +20,7 @@ class ApplicationController < ActionController::Base
     if query = params['q']
       region = params[:fund_region]
       country = params[:fund_country]
+      # raise country.to_s
       page = params[:page] || 1
       per_page = 15
 

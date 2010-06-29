@@ -31,10 +31,12 @@
 - if @results.size == 0
   %p No results found.
 - else
-  %p.to_csv= link_to 'Save to CSV', params.merge('f' => 'csv')
+  - csv_params = params.merge('f' => 'csv')
+  - csv_params.delete(:page)
+  %p.to_csv= link_to 'Save to CSV', csv_params
   %p.result_info
     - #{number_with_delimiter(@total_results)} results
-    = will_paginate(@result_set.hits).to_s.sub('&raquo;','').sub('&laquo;','')
+    = will_paginate(@result_set.hits, :inner_window => 3, :outer_window => 0).to_s.sub('&raquo;','').sub('&laquo;','')
   .items
     %table
       %thead

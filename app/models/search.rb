@@ -9,7 +9,10 @@ class Search
   attr_accessor :page, :per_page, :region, :country, :terms, :result_sets, :results, :total, :current_page, :total_pages
 
   def initialize page, per_page, region, country
-    self.page, self.per_page, self.region, self.country = page, per_page, region, country
+    @page = page
+    @per_page = per_page
+    @region = region
+    @country = country
   end
 
   def largest_result_set
@@ -62,11 +65,12 @@ class Search
     @results = @results.uniq
   end
 
-  def do_search term, per_page=@per_page
+  def do_search term, per_page=@per_page, page=@page, country=@country, region=@region
     FundItem.search(:include => [:fund_file]) do
       keywords term
       if region
         with :fund_region, region
+        with :fund_country, country
       elsif country
         with :fund_country, country
       end
