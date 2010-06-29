@@ -1,4 +1,3 @@
-# require 'google_translate' unless RAILS_ENV == 'test'
 require 'fastercsv'
 
 # Filters added to this controller apply to all controllers in the application.
@@ -19,45 +18,25 @@ class ApplicationController < ActionController::Base
   
   def translate_and_search
     if query = params['q']
-      terms = query.include?(' OR ') ? query.split(' OR ').compact.map(&:strip).map(&:downcase).uniq : translations(query)
-      results = terms.collect { |term| do_search(term) }
+      region = params[:fund_region]
+      country = params[:fund_country]
+      page = params[:page] || 1
+      per_page = 15
 
-      @countries = summarize(results, :fund_country)
-      @regions   = summarize(results, :fund_region)
+      @search = Search.new(page, per_page, region, country)
+      results = @search.translate_and_search(query)
 
-      @results = []
-      @search = Search.new
-      @search.total = 0
-      
-      require 'will_paginate'
-      results.each do |result|
-        @search.total += result.total
-        @search.current_page = result.hits.current_page
-        @search.per_page = result.hits.per_page
-        @search.total_pages = @search.total / @search.per_page
-
-        result.each_hit_with_result do |hit, item|
-          @results << item
-        end
-      end
-      @results = @results.uniq
-
+      @countries = @search.countries
+      @regions   = @search.regions
       @total_results = @search.total
       @current_page = @search.current_page
       @total_pages = @search.total_pages
-      # @results = @results[0,5]
-      @query = terms.join(' OR ')
+      @results = @search.results
+      @query = @search.joined_terms
       params['q'] = @query
 
       if params['f'] == 'csv'
-        results = terms.collect { |term| do_search(term, @total_results) }
-        @results = []
-        results.each do |result|
-          result.each_hit_with_result do |hit, item|
-            @results << item
-          end
-        end
-        output_csv(@results.uniq)
+        output_csv(@search.all_results)
       else
         @search_results = true
         render :template => 'application/search'
@@ -69,7 +48,12 @@ class ApplicationController < ActionController::Base
 
   def search    
     if query = params['q']
-      result = do_search(query)
+      region = params[:fund_region]
+      country = params[:fund_country]
+      page = params[:page] || 1
+      per_page = 15
+      search = Search.new(page, per_page, region, country)
+      result = search.do_search(query)
       @countries = result.facet(:fund_country).rows
       @regions = result.facet(:fund_region).rows
       
@@ -87,23 +71,6 @@ class ApplicationController < ActionController::Base
       end
     else
       render :template => 'application/home'
-    end
-  end
-
-  def do_search term, per_page=15
-    region = params[:fund_region]
-    country = params[:fund_country]
-    page = params[:page] || 1
-
-    FundItem.search(:include => [:fund_file]) do
-      keywords term
-      if region
-        with :fund_region, region
-      elsif country
-        with :fund_country, country
-      end
-      facet :fund_country, :fund_region
-      paginate :page => page, :per_page => per_page
     end
   end
 
@@ -281,52 +248,5 @@ class ApplicationController < ActionController::Base
       id == auth[:user] && password == auth[:password]
     end
   end
-
-  def translations term
-    translator = Google::Translator.new
-    translations = LANGUAGE_CODES.collect do |code|
-      begin
-        translator.translate('en', code, term)
-      rescue Exception => e
-        logger.error("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
-        nil
-      end
-    end.compact
-    ([term] + translations).map(&:strip).map(&:downcase).uniq
-  end
-  
-  def summarize results, facet
-    rows = results.map {|x| x.facet(facet).rows }.flatten
-    rows = rows.group_by(&:value)
-    Struct.new("Facet", :value, :count)
-    rows.keys.collect do |value|
-      count = rows[value].collect {|r| r.count}.sum
-      Struct::Facet.new value, count
-    end
-  end
-
-  LANGUAGE_CODES = [
-      'bg', # BULGARIA
-      'cs', # CZECH REPUBLIC
-      'da', # DENMARK
-      'et', # ESTONIA
-      'fi', # FINLAND
-      'fr', # FRANCE, BELGIUM, LUXEMBOURG
-      'de', # GERMANY, AUSTRIA
-      'el', # GREECE, CYPRUS
-      'hu', # HUNGARY
-      'it', # ITALY
-      'lv', # LATVIA
-      'lt', # LITHUANIA
-      'nl', # NETHERLANDS
-      'pl', # POLAND
-      'pt', # PORTUGAL
-      'ro', # ROMANIA
-      'sk', # SLOVAKIA
-      'sl', # SLOVENIA
-      'es', # SPAIN
-      'sv'  # SWEDEN
-      # 'en'  #'UK, IRELAND, MALTA
-  ]
 
 end

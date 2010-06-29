@@ -97,7 +97,13 @@
     }
     .countries2 {
       @include columns(2, 12);
-      @include suffix(8);
+    }    
+    .countries3 {
+      @include columns(2, 12);
+    }    
+    .countries4 {
+      @include columns(2, 12);
+      @include suffix(4);
       @include omega(12);
     }    
   }
