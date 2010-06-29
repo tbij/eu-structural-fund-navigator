@@ -61,6 +61,11 @@
     @include columns(2, 12);
     @include omega(2);
   }
+  .result_info {
+    @include columns(12, 12);
+    @include omega();
+  }
+
   .translation {
     color: #666;
   }

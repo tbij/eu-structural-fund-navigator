@@ -12,6 +12,10 @@ class Search
     self.page, self.per_page, self.region, self.country = page, per_page, region, country
   end
 
+  def largest_result_set
+    @result_sets.max{|a,b| a.total <=> b.total}
+  end
+
   def countries
     summarize(@result_sets, :fund_country)
   end

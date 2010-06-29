@@ -32,10 +32,9 @@
   %p No results found.
 - else
   %p.to_csv= link_to 'Save to CSV', params.merge('f' => 'csv')
-  .result_info
-    == page #{@current_page} of #{@total_pages}
-    \-
-    == #{number_with_delimiter(@total_results)} results
+  %p.result_info
+    - #{number_with_delimiter(@total_results)} results
+    = will_paginate(@result_set.hits).to_s.sub('&raquo;','').sub('&laquo;','')
   .items
     %table
       %thead

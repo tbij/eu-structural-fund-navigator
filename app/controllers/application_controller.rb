@@ -33,6 +33,7 @@ class ApplicationController < ActionController::Base
       @total_pages = @search.total_pages
       @results = @search.results
       @query = @search.joined_terms
+      @result_set = @search.largest_result_set
       params['q'] = @query
 
       if params['f'] == 'csv'
