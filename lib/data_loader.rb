@@ -1,6 +1,12 @@
-require 'fastercsv'
-require "google_spreadsheet"
 require 'roo'
+require 'rubyzip'
+require 'spreadsheet'
+require "google_spreadsheet"
+# require 'google-spreadsheet-ruby'
+
+require 'fastercsv'
+# require "google_spreadsheet"
+# require 'roo'
 require 'morph'
 require 'cmess/guess_encoding'
 require 'iconv'
@@ -102,6 +108,16 @@ class DataLoader
 
   def add_index
     Dir.chdir(RAILS_ROOT)
+    fund_files_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_files.rb").first
+    text = IO.read(fund_files_migration)
+    File.open(fund_files_migration, 'w') do |f|
+      f.write text.sub(%Q|t.timestamps
+    end|, 
+    %Q|t.timestamps
+    end
+    add_index :fund_files, :currency|)
+    end
+
     fund_items_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_items.rb").first
     text = IO.read(fund_items_migration)
     File.open(fund_items_migration, 'w') do |f|
@@ -109,7 +125,8 @@ class DataLoader
     end|, 
     %Q|t.timestamps
     end
-    add_index :fund_items, :fund_file_id|)
+    add_index :fund_items, :fund_file_id
+    add_index :fund_items, :currency|)
     end
     fund_file_countries_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_file_countries.rb").first
     text = IO.read(fund_file_countries_migration)
@@ -126,7 +143,7 @@ class DataLoader
 
   def add_associations
     File.open("#{RAILS_ROOT}/app/models/fund_item.rb", 'w') do |f|
-      text = %Q|class FundItem < ActiveRecord::Base
+      text = %Q$class FundItem < ActiveRecord::Base
 
   belongs_to :fund_file
   before_validation :set_year
@@ -234,11 +251,11 @@ class DataLoader
       when 'UK'
         'en'
       else
-        raise "unknown language for: | + '#{country}' + %Q|"
+        raise "unknown language for: $ + '#{country}' + %Q$"
     end
   end
 
-end|
+end$
       f.write text
     end
     File.open("#{RAILS_ROOT}/app/models/national_fund_file.rb", 'w') do |f|
@@ -322,7 +339,7 @@ end|
   
   def populate_database fund_files, files_with_data
     fund_files.each do |fund_file|
-      saved_fund_file = save_fund_file(fund_file) 
+      saved_fund_file = save_fund_file(fund_file)
       if saved_fund_file && files_with_data.include?(fund_file)
         records = load_fund_file(fund_file, saved_fund_file) 
         if records
@@ -334,13 +351,13 @@ end|
     end
   end
 
-  def save_records records, fund_file
+  def save_records records, saved_fund_file
     begin
       records.each do |record|
-        save_record record
+        save_record record, nil, saved_fund_file
       end
     rescue Exception => e
-      log_exception fund_file, e
+      log_exception saved_fund_file, e
     end
   end
 
@@ -359,14 +376,21 @@ end|
   end
 
   def fund_file_attributes fund_file
-    direct_link = get_direct_link fund_file
+    direct_link = get_direct_link(fund_file)
     attributes = {
         :region => fund_file.region,
         :program => fund_file.program,
+        :currency => fund_file.currency,
         :sub_program => fund_file.sub_program_information,
         :original_file_name => fund_file.original_file_name,
         :parsed_data_file => fund_file.parsed_data_file,
-        :direct_link => direct_link
+        :direct_link => direct_link,
+        :uri_to_landing_page => fund_file.uri_to_landing_page,
+        :agency => fund_file.agency_that_oversees_funding,
+        :max_percent_funded_by_eu_funds => fund_file.percent_funded_by_eu_funds_maximum,
+        :min_percent_funded_by_eu_funds => fund_file.percent_funded_by_eu_funds_minimum,
+        :last_updated => fund_file.last_updated,
+        :next_update => fund_file.next_update
     }
   end
 
@@ -421,7 +445,18 @@ end|
        end
       raise "cannot load item without a beneficiary or project title: #{record.inspect} #{log_previous} #{log_fields}"
     end
-    record_model.create record.morph_attributes
+    attributes = record.morph_attributes
+    if saved_fund_file && saved_fund_file.respond_to?(:currency)
+      attributes = {:currency => saved_fund_file.currency}.merge(attributes)
+    end
+    if attributes[:currency].blank? && saved_fund_file.type == 'NationalFundFile' && saved_fund_file.country
+      currency = default_currency(saved_fund_file.country)
+      attributes[:currency] = currency
+    end
+    if attributes[:currency].blank?
+      raise "fund item currency should not be blank: #{attributes.inspect} ... #{saved_fund_file.inspect}"
+    end
+    record_model.create attributes
   end
 
   def record_model
@@ -487,7 +522,7 @@ end|
   end
 
   def fund_file_migration
-    %Q|./script/generate scaffold_resource fund_file type:string error:text region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string\n| +
+    %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string\n| +
     %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
   end
 
@@ -679,4 +714,34 @@ end|
     end
   end
 
+  def default_currency country
+    case country
+      when /(AUSTRIA|BELGIUM|CYPRUS|FINLAND|FRANCE|GERMANY|GREECE|IRELAND|ITALY|LUXEMBOURG|MALTA|NETHERLANDS|PORTUGAL|SLOVAKIA|SLOVENIA|SPAIN)/
+        'EUR'
+      when 'BULGARIA'
+        'BGN'
+      when 'CZECH REPUBLIC'
+        'CZK'
+      when 'DENMARK'
+        'DKK'
+      when 'ESTONIA'
+        'EEK'
+      when 'HUNGARY'
+        'HUF'
+      when 'LATVIA'
+        'LVL'
+      when 'LITHUANIA'
+        'LTL'
+      when 'POLAND'
+        'PLN'
+      when 'ROMANIA'
+        'RON'
+      when 'SWEDEN'
+        'SEK'
+      when 'UK'
+        'GBP'
+      else
+        raise "unknown currency for: #{country}"
+    end
+  end
 end

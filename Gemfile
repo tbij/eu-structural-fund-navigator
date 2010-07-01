@@ -22,12 +22,11 @@ group :production do
 end
 
 # roo + dependencies
-gem 'roo'
-gem 'rubyzip'
-gem 'spreadsheet'
-# gem 'spreadsheet-excel'
-# gem 'to_csv'
-gem 'google-spreadsheet-ruby'
+# gem 'roo'
+# gem 'rubyzip'
+# gem 'spreadsheet'
+# gem 'google-spreadsheet-ruby'
+
 
 group :test do
   gem 'rspec'

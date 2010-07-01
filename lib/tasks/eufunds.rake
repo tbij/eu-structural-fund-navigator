@@ -13,7 +13,14 @@ namespace :eufunds do
     loader = DataLoader.new
     loader.load_database master_file_name
   end
-  
+
+  desc "reindexes fund items in solr"
+  task :reindex => :environment do
+    puts "reindexing fund items in solr ..."
+    FundItem.reindex
+    puts "reindexing finished"
+  end
+
   task :reload => :environment do
     loader = DataLoader.new
     if country = ENV['country']
@@ -25,7 +32,7 @@ namespace :eufunds do
       loader.reload_file file, master_file_name
     end
   end
-  
+
   task :excel_to_csv => :environment do
     file_name = RAILS_ROOT+'/'+ARGV[1]
     loader = DataLoader.new
@@ -35,7 +42,7 @@ namespace :eufunds do
     puts "saving: #{csv_file}"
     File.open(csv_file,'w') {|f| f.write csv}
   end
-  
+
   task :unknown => :environment do
     a = FundItem.find_by_sql('select * from fund_items where amount_unknown_source is not null')
     x = a.collect(&:fund_file_id).uniq

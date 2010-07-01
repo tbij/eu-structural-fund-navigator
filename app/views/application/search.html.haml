@@ -33,6 +33,7 @@
 - else
   - csv_params = params.merge('f' => 'csv')
   - csv_params.delete(:page)
+  %p== Minimum EU Funds amount: #{ number_to_currency(@min_eu_amount_in_euros, :unit => "&euro;", :precision => 0) }
   %p.to_csv= link_to 'Save to CSV', csv_params
   %p.result_info
     - #{number_with_delimiter(@total_results)} results

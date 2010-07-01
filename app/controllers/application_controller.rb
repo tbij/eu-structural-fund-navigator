@@ -15,12 +15,11 @@ class ApplicationController < ActionController::Base
 
   def home
   end
-  
+
   def translate_and_search
     if query = params['q']
       region = params[:fund_region]
       country = params[:fund_country]
-      # raise country.to_s
       page = params[:page] || 1
       per_page = 15
 
@@ -35,6 +34,7 @@ class ApplicationController < ActionController::Base
       @results = @search.results
       @query = @search.joined_terms
       @result_set = @search.largest_result_set
+      @min_eu_amount_in_euros = @search.min_eu_amount_in_euros
       params['q'] = @query
 
       if params['f'] == 'csv'
@@ -142,6 +142,7 @@ class ApplicationController < ActionController::Base
     @other_error_colour = (@other_total_file_errors == 0) ? 'darkgrey' : 'darkred'
 
     other_priority_size = @other_countries.size
+    other_priority_size = 1 if other_priority_size == 0
 
     @other_total_percent_loaded = @other_countries.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
     @other_total_percent_errors = @other_countries.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size

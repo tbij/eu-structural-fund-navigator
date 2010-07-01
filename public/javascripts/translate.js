@@ -13,23 +13,28 @@ function initialize() {
       var to_language = item.parentNode.className;
 
       if (to_language != 'en') {
-        var id = item.id.replace("description_","");
-        var text = id + " " + item.innerHTML;
+        var id = item.id.replace("description_","");        
+        var text_length = normalize_html(item.innerHTML).length;
 
-        google.language.translate(text, to_language, "en", function(result) {
-          var translation = result.translation;
-          if (translation) {
-            var index = translation.split(" ")[0];
-            translation = translation.replace(index + " ", "");
-            var input = normalize_html(document.getElementById("description_" + index).innerHTML);
-            // alert(input);
-            var normalized_translation = normalize_html(translation);
-            if (normalized_translation != input) {
-              var element = document.getElementById("translation_" + index);
-              element.innerHTML = translation;
+        if(text_length > 0) {
+          var text = item.innerHTML;
+          text = id + " " + text;
+  
+          google.language.translate(text, to_language, "en", function(result) {
+            var translation = result.translation;
+            if (translation) {
+              var index = translation.split(" ")[0];
+              translation = translation.replace(index + " ", "");
+              var input = normalize_html(document.getElementById("description_" + index).innerHTML);
+              // alert(input);
+              var normalized_translation = normalize_html(translation);
+              if (normalized_translation != input) {
+                var element = document.getElementById("translation_" + index);
+                element.innerHTML = translation;
+              }
             }
-          }
-        });
+          });
+        }
       }
     }
   }

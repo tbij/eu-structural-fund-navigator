@@ -8,7 +8,7 @@ class Search
 
   attr_accessor :page, :per_page, :region, :country, :terms, :result_sets, :results, :total, :current_page, :total_pages
 
-  def initialize page, per_page, region, country
+  def initialize page=1, per_page=15, region=nil, country=nil
     @page = page
     @per_page = per_page
     @region = region
@@ -34,6 +34,16 @@ class Search
   def joined_terms
     @terms.join(' OR ')
   end
+  
+  def min_eu_amount_in_euros
+    if @total == 0
+      0
+    else
+      id_sets = @terms.collect { |term| do_search_ids(term, @total) }
+      ids = id_sets.flatten.uniq.sort
+      FundItem.sum(:amount_allocated_eu_funds, :conditions => "id in (#{ids.join(',')}) AND currency = 'EUR'")
+    end
+  end
 
   def all_results
     result_sets = @terms.collect { |term| do_search(term, @total) }
@@ -49,6 +59,9 @@ class Search
   def translate_and_search query
     @terms = split_terms(query)
     @result_sets = @terms.collect { |term| do_search(term) }
+    
+    # answer = {}
+    # @terms.each_with_index {|e,i| answer[@terms[i]] = @result_sets[i].results.collect(&:beneficiary) }
     @results = []
     @total = 0
     
@@ -66,7 +79,21 @@ class Search
   end
 
   def do_search term, per_page=@per_page, page=@page, country=@country, region=@region
-    FundItem.search(:include => [:fund_file]) do
+    FundItem.search :include => [:fund_file] do
+      keywords term
+      if region
+        with :fund_region, region
+        with :fund_country, country
+      elsif country
+        with :fund_country, country
+      end
+      facet :fund_country, :fund_region
+      paginate :page => page, :per_page => per_page
+    end
+  end
+
+  def do_search_ids term, per_page=@per_page, page=@page, country=@country, region=@region
+    FundItem.search_ids do
       keywords term
       if region
         with :fund_region, region
