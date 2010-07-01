@@ -52,7 +52,7 @@
 #content {
   @include columns(12);
   @include alpha;
-  
+
   ul {
     @include no-style-list;
   }
@@ -63,10 +63,20 @@
   }
   .result_info {
     @include columns(12, 12);
-    @include omega();
+    @include omega(12);
+  }
+  #eu_amount {
+    @include columns(12, 12);
+    p.eu_amount {
+      @include columns(6, 12);
+      @include omega(6);
+      span.eu_amount {
+        font-size: 2em;
+      }
+    }
   }
 
-  .translation {
+  .translation, .euro_conversion {
     color: #666;
   }
   #search {
@@ -128,7 +138,7 @@
   }
   .amount {
     text-align: right;
-    width: 7em;
+    width: 8em;
   }
   td {
     font-size: 0.9em;

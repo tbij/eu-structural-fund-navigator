@@ -4,6 +4,14 @@ namespace :eufunds do
     "#{RAILS_ROOT}/DATA/master.csv"
   end
 
+  def fx_rates_file_name
+    "#{RAILS_ROOT}/DATA/fx_rates.csv"
+  end
+
+  desc "resets datbase by running :setup_db, :load_db, :reindex"
+  task :reset => [:setup_db, :load_db, :reindex] do
+  end
+
   task :setup_db => :environment do
     loader = DataLoader.new
     loader.setup_database master_file_name
@@ -11,7 +19,7 @@ namespace :eufunds do
 
   task :load_db => :environment do
     loader = DataLoader.new
-    loader.load_database master_file_name
+    loader.load_database master_file_name, fx_rates_file_name
   end
 
   desc "reindexes fund items in solr"

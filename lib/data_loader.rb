@@ -1,12 +1,6 @@
-require 'roo'
-require 'rubyzip'
-require 'spreadsheet'
 require "google_spreadsheet"
-# require 'google-spreadsheet-ruby'
-
+require 'roo'
 require 'fastercsv'
-# require "google_spreadsheet"
-# require 'roo'
 require 'morph'
 require 'cmess/guess_encoding'
 require 'iconv'
@@ -17,14 +11,14 @@ end
 
 class DataLoader
 
-  def get_fields(file_name)
+  def get_fields file_name
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
     fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
     fields.collect do |field| 
       field = field.to_s.sub(/_field$/,'')
       if field[/^amount_/]
-        [field.sub('amount_','').to_sym, field.to_sym]
+        [field.sub('amount_','').to_sym, field.to_sym, "#{field}_in_euro".to_sym]
       else
         field.to_sym
       end
@@ -36,7 +30,8 @@ class DataLoader
     reset_database fields
   end
 
-  def load_database file_name
+  def load_database file_name, fx_rates_file_name 
+    @fx_rates = load_fx_rates(fx_rates_file_name)
     migrate_database
     fund_files = load_fund_files file_name
     files_with_data = with_data(fund_files)
@@ -387,7 +382,7 @@ end|
         :direct_link => direct_link,
         :uri_to_landing_page => fund_file.uri_to_landing_page,
         :agency => fund_file.agency_that_oversees_funding,
-        :max_percent_funded_by_eu_funds => fund_file.percent_funded_by_eu_funds_maximum,
+        :max_percent_funded_by_eu_funds => fund_file.respond_to?(:percent_funded_by_eu_funds_maximum) ? fund_file.percent_funded_by_eu_funds_maximum : nil,
         :min_percent_funded_by_eu_funds => fund_file.percent_funded_by_eu_funds_minimum,
         :last_updated => fund_file.last_updated,
         :next_update => fund_file.next_update
@@ -486,6 +481,17 @@ end|
     name = '_'+name if name =~ /^\d/
     name.sub!('operación','operacion')
     name
+  end
+
+  def load_fx_rates file_name
+    csv = IO.read(file_name)
+    fx_rates = Morph.from_csv(csv, 'FxRate')
+    fx_rates = fx_rates.group_by(&:currency_code)
+    fx_rates.keys.each do |code|
+      rates = fx_rates[code]
+      fx_rates[code] = rates.first._1_eur_equals.to_f
+    end
+    fx_rates
   end
 
   def load_fund_files file_name
@@ -596,6 +602,77 @@ end|
     content
   end
   
+  def get_currency record, saved_fund_file
+    attributes = record.morph_attributes
+    if saved_fund_file && saved_fund_file.respond_to?(:currency)
+      attributes = {:currency => saved_fund_file.currency}.merge(attributes)
+    end
+    if attributes[:currency].blank? && saved_fund_file.type == 'NationalFundFile' && saved_fund_file.country
+      currency = default_currency(saved_fund_file.country)
+      attributes[:currency] = currency
+    end
+    if attributes[:currency].blank?
+      raise "fund item currency should not be blank: #{attributes.inspect} ... #{saved_fund_file.inspect}"
+    end
+    attributes[:currency]
+  end
+
+  def create_record row, field_names, saved_fund_file
+    record = FundRecord.new
+    record.fund_file_id = saved_fund_file.id if saved_fund_file
+
+    field_names.each do |field|
+      normalized = field[0]
+      original = field[1]
+      begin
+        value = row[original]
+        if normalized.to_s[/^amount_(.+)$/]
+          record.morph($1.to_sym, value)
+          value = convert_value value
+        end
+        record.morph(normalized, value)
+      rescue Exception => e
+        if saved_fund_file
+          log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
+        end
+      end
+    end
+
+    currency = get_currency(record, saved_fund_file)
+
+    record.morph(:currency, currency)
+
+    amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
+
+    if record.currency == 'EUR'
+      amount_fields.each do |amount_field|
+        if !amount_field.to_s[/euro/]
+          amount = record.send(amount_field)
+          if amount && amount != 0
+            record.morph("#{amount_field}_in_euro", amount)
+          end
+        end
+      end
+    else
+      one_euro_equals_x = @fx_rates[currency]
+      puts "No FX Rate defined for #{currency}" if one_euro_equals_x.blank?
+      raise "No FX Rate defined for #{currency}" if one_euro_equals_x.blank?
+
+      amount_fields.each do |amount_field|
+        if !amount_field.to_s[/euro/]
+          amount_in_non_euros = record.send(amount_field)
+  
+          if amount_in_non_euros && amount_in_non_euros != 0
+            amount_in_euros = amount_in_non_euros / one_euro_equals_x
+            record.morph("#{amount_field}_in_euro", amount_in_euros)
+          end
+        end
+      end
+    end
+
+    record
+  end
+
   def load_fund_file fund_file, saved_fund_file
     name = fund_file.parsed_data_file
     if name.blank?
@@ -641,25 +718,7 @@ end|
     begin
       raw_records.each do |row|
         last_row = row
-        record = FundRecord.new
-        record.fund_file_id = saved_fund_file.id if saved_fund_file
-  
-        field_names.each do |field|
-          normalized = field[0]
-          original = field[1]
-          begin
-            value = row[original]
-            if normalized.to_s[/^amount_(.+)$/]
-              record.morph($1.to_sym, value)
-              value = convert_value value
-            end
-            record.morph(normalized, value)
-          rescue Exception => e
-            if saved_fund_file
-              log_error saved_fund_file, "#{e.class.name}:\n#{e.to_s}\n\n#{e.backtrace.join("\n")}\n\n#{row.inspect}"
-            end
-          end
-        end
+        record = create_record(row, field_names, saved_fund_file)
         records << record
       end
     rescue Exception => e

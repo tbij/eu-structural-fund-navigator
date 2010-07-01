@@ -33,7 +33,13 @@
 - else
   - csv_params = params.merge('f' => 'csv')
   - csv_params.delete(:page)
-  %p== Minimum EU Funds amount: #{ number_to_currency(@min_eu_amount_in_euros, :unit => "&euro;", :precision => 0) }
+  #eu_amount
+    %p.eu_amount
+      %span 
+        at least
+      %span.eu_amount= number_to_currency(@min_eu_amount_in_euros, :unit => "&euro;", :precision => 0)
+      %span
+        in allocated EU Funds
   %p.to_csv= link_to 'Save to CSV', csv_params
   %p.result_info
     - #{number_with_delimiter(@total_results)} results
@@ -42,7 +48,6 @@
     %table
       %thead
         %tr
-          %th Fund
           %th
             Country
             %br
@@ -53,13 +58,13 @@
             %br
             &amp; Description
           %th
-            Amount
+            Amount Allocated
             %br
             EU Funds
+          %th Fund
       %tbody
         - @results.each_with_index do |item, index|
           %tr
-            %td= h item.fund_name.to_s.strip
             %td
               = h item.fund_file.countries.first.name.to_s.strip
               %br
@@ -75,4 +80,10 @@
                   = h item.description.to_s.strip
               %br
               %span.translation{:id => "translation_#{index}"}
-            %td.amount= item.amount_allocated_eu_funds ? "#{number_with_delimiter(item.amount_allocated_eu_funds)} #{h(item.currency)}" : ''
+            %td.amount
+              = item.amount_allocated_eu_funds ? "#{number_with_delimiter(item.amount_allocated_eu_funds)} #{h(item.currency)}" : ''
+              - if item.currency != 'EUR'
+                %br
+                %span.euro_conversion= item.amount_allocated_eu_funds_in_euro ? "#{number_with_delimiter(item.amount_allocated_eu_funds_in_euro)} EUR" : ''                
+            %td= h item.fund_name.to_s.strip
+            

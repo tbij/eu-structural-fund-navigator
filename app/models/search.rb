@@ -8,7 +8,8 @@ class Search
 
   attr_accessor :page, :per_page, :region, :country, :terms, :result_sets, :results, :total, :current_page, :total_pages
 
-  def initialize page=1, per_page=15, region=nil, country=nil
+  def initialize logger, page=1, per_page=15, region=nil, country=nil
+    @logger = logger
     @page = page
     @per_page = per_page
     @region = region
@@ -41,7 +42,7 @@ class Search
     else
       id_sets = @terms.collect { |term| do_search_ids(term, @total) }
       ids = id_sets.flatten.uniq.sort
-      FundItem.sum(:amount_allocated_eu_funds, :conditions => "id in (#{ids.join(',')}) AND currency = 'EUR'")
+      FundItem.sum(:amount_allocated_eu_funds_in_euro, :conditions => "id in (#{ids.join(',')})")
     end
   end
 
@@ -79,16 +80,29 @@ class Search
   end
 
   def do_search term, per_page=@per_page, page=@page, country=@country, region=@region
-    FundItem.search :include => [:fund_file] do
-      keywords term
-      if region
-        with :fund_region, region
-        with :fund_country, country
-      elsif country
-        with :fund_country, country
+    begin
+      FundItem.search :include => [:fund_file] do
+        keywords term
+        if region
+          with :fund_region, region
+          with :fund_country, country
+        elsif country
+          with :fund_country, country
+        end
+        facet :fund_country, :fund_region
+        paginate :page => page, :per_page => per_page
       end
-      facet :fund_country, :fund_region
-      paginate :page => page, :per_page => per_page
+    rescue NoMethodError => e
+      @logger.error("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
+      begin
+        @logger.error("trying to restart Solr server")
+        @logger.info "cd #{RAILS_ROOT} ; rake sunspot:solr:start"
+        @logger.info `cd #{RAILS_ROOT} ; rake sunspot:solr:start`
+        do_search(term, per_page, page, country, region)
+      rescue Exception => e
+        @logger.error("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
+        raise e
+      end
     end
   end
 

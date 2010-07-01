@@ -23,7 +23,7 @@ class ApplicationController < ActionController::Base
       page = params[:page] || 1
       per_page = 15
 
-      @search = Search.new(page, per_page, region, country)
+      @search = Search.new(logger, page, per_page, region, country)
       results = @search.translate_and_search(query)
 
       @countries = @search.countries
@@ -54,7 +54,7 @@ class ApplicationController < ActionController::Base
       country = params[:fund_country]
       page = params[:page] || 1
       per_page = 15
-      search = Search.new(page, per_page, region, country)
+      search = Search.new(logger, page, per_page, region, country)
       result = search.do_search(query)
       @countries = result.facet(:fund_country).rows
       @regions = result.facet(:fund_region).rows
