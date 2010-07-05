@@ -656,7 +656,7 @@ end|
         end
       end
     else
-      one_euro_equals_x = @fx_rates[currency]
+      one_euro_equals_x = get_fx_rate(currency)
       puts "No FX Rate defined for #{currency}" if one_euro_equals_x.blank?
       raise "No FX Rate defined for #{currency}" if one_euro_equals_x.blank?
 
@@ -673,6 +673,10 @@ end|
     end
 
     record
+  end
+  
+  def get_fx_rate currency
+    @fx_rates[currency]
   end
 
   def check_mappings field_names, row, saved_fund_file

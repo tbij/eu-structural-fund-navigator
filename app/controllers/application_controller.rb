@@ -168,10 +168,10 @@ class ApplicationController < ActionController::Base
   def to_csv_file
     country_id = params[:country_id]
     if country_id.to_i == 0
-      fund_files = FundFile.find(:all, :include => [:fund_items])
+      fund_files = FundFile.find(:all)
       items = fund_files.collect(&:fund_items).flatten
     else
-      country = Country.find(country_id, :include => {:fund_files => :fund_items})  
+      country = Country.find(country_id, :include => :fund_files )  
       fund_files = country.fund_files
       items = fund_files.collect(&:fund_items).flatten
     end

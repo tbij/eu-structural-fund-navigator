@@ -4,6 +4,8 @@ describe DataLoader do
   
   before :each do
     @loader = DataLoader.new
+    @loader.stub!(:load_fx_rates)
+    @loader.stub!(:get_fx_rate).and_return 1
     @data_file = 'pl_in_progress_erdf.csv'
 
     @country = 'POLAND'
@@ -21,10 +23,17 @@ describe DataLoader do
         :program => @program,
         :sub_program_information => @sub_program,
         :original_file_name => @original_file,
-        :direct_link_to_pdf => @direct_uri
+        :direct_link_to_pdf => @direct_uri,
+        :currency => 'EUR',
+        :uri_to_landing_page => '',
+        :agency_that_oversees_funding => '',
+        :percent_funded_by_eu_funds_minimum => '',
+        :percent_funded_by_eu_funds_maximum => '',
+        :last_updated => '',
+        :next_update => ''
         )
     @saved_fund_file_id = 'example_id'
-    @saved_fund_file = mock('saved_fund_file', :id => @saved_fund_file_id)
+    @saved_fund_file = mock('saved_fund_file', :id => @saved_fund_file_id, :error => nil, :currency => 'EUR', :type => 'NationalFundFile', :country => 'POLAND')
     @loader.stub!(:cmd)
   end
   
@@ -54,7 +63,14 @@ describe DataLoader do
         :sub_program => @sub_program,
         :original_file_name => @original_file,
         :parsed_data_file => @data_file,
-        :direct_link => @direct_uri
+        :direct_link => @direct_uri,
+        :last_updated=>"", 
+        :currency=>"EUR",
+        :next_update=>"", 
+        :agency=>"",
+        :uri_to_landing_page=>"", 
+        :max_percent_funded_by_eu_funds=>"", 
+        :min_percent_funded_by_eu_funds=>""        
       }
 
       fund_file_country_attributes = {
@@ -78,7 +94,7 @@ describe DataLoader do
       @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files      
       @loader.should_receive(:with_data).with(fund_files).and_return fund_files
       @loader.should_receive(:populate_database).with(fund_files, fund_files)
-      @loader.load_database file_name
+      @loader.load_database file_name, 'x'
     end
 
     it 'should run scaffold generate and reset db' do
@@ -129,14 +145,14 @@ describe DataLoader do
       
       @loader.should_receive(:load_fund_file).with(@fund_file, @saved_fund_file).and_return records
       
-      @loader.should_receive(:save_record).with(record)
-      @loader.should_receive(:save_record).with(record2)
-      @loader.should_receive(:save_record).with(record3)
+      @loader.should_receive(:save_record).with(record, nil, @saved_fund_file)
+      @loader.should_receive(:save_record).with(record2, nil, @saved_fund_file)
+      @loader.should_receive(:save_record).with(record3, nil, @saved_fund_file)
       @loader.populate_database(fund_files, fund_files_with_data)
     end
     
     it 'should save record' do
-      morph_attributes = {:x => 'y', :beneficiary => 'Acme'}
+      morph_attributes = {:x => 'y', :beneficiary => 'Acme', :currency => 'currency'}
       record = mock('record', :morph_attributes => morph_attributes, :beneficiary => 'Acme')
       model = mock('FundItemClass')
       @loader.should_receive(:record_model).and_return model
@@ -193,8 +209,9 @@ describe DataLoader do
   it 'should identify fields from fund_files' do
     files = fund_files
     field_names = @loader.field_names(files.first)
-    field_names.first.should == [:beneficiary, "Nazwa beneficjenta"] 
-    field_names.second.should == [:project_title, "Tytuł projektu"]
+    field_names.first.should == [:currency, "EUR"] 
+    field_names.second.should == [:beneficiary, "Nazwa beneficjenta"] 
+    field_names.third.should == [:project_title, "Tytuł projektu"]
     field_names.last.should == [:program_name, "Program Operacyjny"]
   end
 
@@ -250,7 +267,7 @@ describe DataLoader do
 
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
-      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string|
+      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string|
       lines[1].should == %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
     end
 
@@ -324,7 +341,7 @@ for2010",Program,"Sub-program
 information",Parsed data file,Original file name,Currency Field,Beneficiary Field,Project Title Field,Program Name Field,Amount Allocated Field (EU Funds),Amount Allocated (All funds EU/Nation/Region),Amount Paid Field,Description Field,Year Field,Date Field,Start Year Field,,Direct link to PDF,"Direct link to
 Excel","Direct Link to 
 HTML",Direct link to Doc,,Last Updated,Next update ,Explanatory Notes,Waiting for response,Contact,Uri to landing page,Contact
-POLAND,national,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,,Nazwa beneficjenta,Tytuł projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
+POLAND,national,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,EUR,Nazwa beneficjenta,Tytuł projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
 |
   end
 
