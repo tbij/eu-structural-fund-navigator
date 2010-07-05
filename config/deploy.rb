@@ -99,6 +99,10 @@ namespace :deploy do
     run "cd #{current_path}; rake eufunds:reset RAILS_ENV=production --trace"
   end
 
+  task :reindex, :roles => :app do
+    run "cd #{current_path}; rake eufunds:reindex RAILS_ENV=production --trace"
+  end
+
   task :setup_db, :roles => :app do
     run "cd #{current_path}; rake eufunds:setup_db RAILS_ENV=production --trace"
   end

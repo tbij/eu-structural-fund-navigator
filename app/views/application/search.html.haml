@@ -27,12 +27,14 @@
         = render :partial => 'facet', :object => @regions.in_groups(2).first, :locals => {:facet_name => :fund_region, :total => @regions.size}
       .regions2
         = render :partial => 'facet', :object => @regions.in_groups(2).last, :locals => {:facet_name => :fund_region, :total => @regions.size}
+  - unless @results.size == 0
+    - csv_params = params.merge('f' => 'csv')
+    - csv_params.delete(:page)
+    .to_csv= link_to 'Save to CSV', csv_params
 
 - if @results.size == 0
   %p No results found.
 - else
-  - csv_params = params.merge('f' => 'csv')
-  - csv_params.delete(:page)
   #eu_amount
     %p.eu_amount
       %span 
@@ -40,10 +42,6 @@
       %span.eu_amount= number_to_currency(@min_eu_amount_in_euros, :unit => "&euro;", :precision => 0)
       %span
         in allocated EU Funds
-  %p.to_csv= link_to 'Save to CSV', csv_params
-  %p.result_info
-    - #{number_with_delimiter(@total_results)} results
-    = will_paginate(@result_set.hits, :inner_window => 3, :outer_window => 0).to_s.sub('&raquo;','').sub('&laquo;','')
   .items
     %table
       %thead
@@ -67,9 +65,15 @@
           %tr
             %td
               = h item.fund_file.countries.first.name.to_s.strip
-              %br
-              = h item.fund_file.region.to_s.strip
-            %td= h item.beneficiary.to_s.strip
+              - unless item.fund_file.region[/all regions/i]
+                %br
+                = h item.fund_file.region.to_s.strip
+            %td
+              = h item.beneficiary.to_s.strip
+              - unless item.subcontractor.blank?
+                %br
+                Subcontractors:
+                = item.subcontractor
             %td{:class => item.language_code}
               %span.description{:id => "description_#{index}"}
                 - if item.project_title.blank?
@@ -86,4 +90,7 @@
                 %br
                 %span.euro_conversion= item.amount_allocated_eu_funds_in_euro ? "#{number_with_delimiter(item.amount_allocated_eu_funds_in_euro)} EUR" : ''                
             %td= h item.fund_name.to_s.strip
-            
+  #pagination
+    %p.pagination
+      - #{number_with_delimiter(@total_results)} results
+      = will_paginate(@result_set.hits, :inner_window => 3, :outer_window => 2).to_s.sub('&raquo;','').sub('&laquo;','')

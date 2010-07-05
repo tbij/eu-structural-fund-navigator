@@ -8,7 +8,7 @@ class Search
 
   attr_accessor :page, :per_page, :region, :country, :terms, :result_sets, :results, :total, :current_page, :total_pages
 
-  def initialize logger, page=1, per_page=15, region=nil, country=nil
+  def initialize logger, page=1, per_page=8, region=nil, country=nil
     @logger = logger
     @page = page
     @per_page = per_page
@@ -40,14 +40,18 @@ class Search
     if @total == 0
       0
     else
-      id_sets = @terms.collect { |term| do_search_ids(term, @total) }
+      id_sets = @terms.collect { |term| do_search_ids(term, @total, 1) }
       ids = id_sets.flatten.uniq.sort
-      FundItem.sum(:amount_allocated_eu_funds_in_euro, :conditions => "id in (#{ids.join(',')})")
+      if ids.empty?
+        0
+      else
+        FundItem.sum(:amount_allocated_eu_funds_in_euro, :conditions => "id in (#{ids.join(',')})")
+      end
     end
   end
 
   def all_results
-    result_sets = @terms.collect { |term| do_search(term, @total) }
+    result_sets = @terms.collect { |term| do_search(term, @total, 1) }
     @all_results = []
     result_sets.each do |result|
       result.each_hit_with_result do |hit, item|

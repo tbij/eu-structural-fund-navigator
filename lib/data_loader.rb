@@ -39,16 +39,18 @@ class DataLoader
     populate_database fund_files, files_with_data
   end
 
-  def reload_file parsed_data_file_name, master_file_name
+  def reload_file parsed_data_file_name, master_file_name, fx_rates_file_name
+    @fx_rates = load_fx_rates(fx_rates_file_name)
     fund_files = load_fund_files(master_file_name)
     files_with_data = with_data(fund_files).select {|f| f.parsed_data_file.strip == parsed_data_file_name.strip }
     reload_files files_with_data, master_file_name, true
   end
 
-  def reload_country country, master_file_name
+  def reload_country country, master_file_name, fx_rates_file_name
+    @fx_rates = load_fx_rates(fx_rates_file_name)
     fund_files = load_fund_files(master_file_name)
     files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
-    reload_files files_with_data, master_file_name, false
+    reload_files files_with_data, master_file_name, true
   end
 
   def reload_files files_with_data, file_name, force_reload
@@ -149,7 +151,7 @@ class DataLoader
 =end
 
   searchable :auto_index => false do
-    text :beneficiary, :project_title, :description
+    text :beneficiary, :project_title, :description, :subcontractor
 
     string :eu_fund_name do 
       fund_name
@@ -624,7 +626,7 @@ end|
     field_names.each do |field|
       normalized = field[0]
       original = field[1]
-      begin
+      begin       
         value = row[original]
         if normalized.to_s[/^amount_(.+)$/]
           record.morph($1.to_sym, value)
@@ -644,7 +646,7 @@ end|
 
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
 
-    if record.currency == 'EUR'
+    if currency == 'EUR'
       amount_fields.each do |amount_field|
         if !amount_field.to_s[/euro/]
           amount = record.send(amount_field)
@@ -671,6 +673,21 @@ end|
     end
 
     record
+  end
+
+  def check_mappings field_names, row, saved_fund_file
+    bad_mappings = []
+    field_names.each do |field|
+      normalized = field[0]
+      original = field[1]
+      unless row.header?(original)
+        bad_mappings << original
+      end
+    end
+    
+    unless bad_mappings.empty?
+      raise "mappings: #{bad_mappings.join(",")}\nnot found in: #{row.headers}"
+    end
   end
 
   def load_fund_file fund_file, saved_fund_file
@@ -713,10 +730,15 @@ end|
       return nil
     end
 
+    do_check_mappings = true
     last_row = nil
     records = []
     begin
       raw_records.each do |row|
+        if do_check_mappings
+          check_mappings(field_names, row, saved_fund_file)
+        end
+        do_check_mappings = false
         last_row = row
         record = create_record(row, field_names, saved_fund_file)
         records << record

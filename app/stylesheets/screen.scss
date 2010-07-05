@@ -45,6 +45,9 @@
 }
 #footer {
   #google_attribution {
+    @include columns(3, 12);
+    @include suffix(9);
+    @include omega(3);
     font-size: 0.7em;
     color: rgb(103, 103, 103);
   }
@@ -57,22 +60,27 @@
     @include no-style-list;
   }
 
-  .to_csv {
-    @include columns(2, 12);
-    @include omega(2);
-  }
   .result_info {
     @include columns(12, 12);
     @include omega(12);
   }
+  .pagination {
+    @include columns(6, 12);
+    @include prefix(6);
+    @include omega(6);
+    text-align: right;    
+  }
   #eu_amount {
+    @include leader(0.25);
+    @include trailer(0.25);
     @include columns(12, 12);
     p.eu_amount {
-      @include columns(6, 12);
-      @include omega(6);
+      @include columns(7, 12);
+      @include omega(7);
       span.eu_amount {
         font-size: 2em;
       }
+      text-align: right;
     }
   }
 
@@ -99,38 +107,39 @@
   #facets {
     @include columns(12);
     @include trailer(1);
+    .country {
+      @include columns(2, 12);
+    }
+    .countries {
+      .countries1 {
+        @include columns(2, 12);
+      }
+      .countries2 {
+        @include columns(2, 12);
+      }    
+      .countries3 {
+        @include columns(2, 12);
+      }    
+      .countries4 {
+        @include columns(2, 12);
+      }
+    }
+    .regions {
+      .regions1 {
+        @include columns(4, 12);
+      }
+      .regions2 {
+        @include columns(4, 12);
+      }
+    }
+    .to_csv {
+      @include columns(2, 12);
+      @include omega(2);
+      text-align: right;
+    }
   }
   .facet_row {
     font-size: 0.9em;
-  }
-  .country {
-    @include columns(2, 12);
-  }
-  .countries {
-    .countries1 {
-      @include columns(2, 12);
-    }
-    .countries2 {
-      @include columns(2, 12);
-    }    
-    .countries3 {
-      @include columns(2, 12);
-    }    
-    .countries4 {
-      @include columns(2, 12);
-      @include suffix(4);
-      @include omega(12);
-    }    
-  }
-  .regions {
-    .regions1 {
-      @include columns(4, 12);
-    }
-    .regions2 {
-      @include columns(4, 12);
-      @include suffix(2);
-      @include omega(4);
-    }
   }
   .items {
     @include columns(12, 12);
