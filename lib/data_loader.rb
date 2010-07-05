@@ -686,7 +686,7 @@ end|
     end
     
     unless bad_mappings.empty?
-      raise "mappings: #{bad_mappings.join(",")}\nnot found in: #{row.headers}"
+      raise "mappings: #{bad_mappings.join(", ")}\nnot found in: #{row.headers.join(", ")}"
     end
   end
 

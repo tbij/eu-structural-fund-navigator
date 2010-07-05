@@ -186,7 +186,7 @@ class ApplicationController < ActionController::Base
     fund_fields = [
       :country,
       :region,
-      :program,
+      # :program,
       :sub_program
     ]
     if country && country.name.upcase == 'LATVIA'
@@ -194,7 +194,7 @@ class ApplicationController < ActionController::Base
         :country,
         :region,
         :agency,
-        :program,
+        # :program,
         :sub_program
       ]
     end
