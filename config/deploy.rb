@@ -95,12 +95,16 @@ namespace :deploy do
     run "cd #{current_path}; #{ENV['GEM_BIN']}/bundle lock"
   end
 
-  task :reset_db, :roles => :app do
-    run "cd #{current_path}; rake eufunds:reset RAILS_ENV=production --trace"
-  end
-
   task :reindex, :roles => :app do
     run "cd #{current_path}; rake eufunds:reindex RAILS_ENV=production --trace"
+  end
+
+  task :solr_start, :roles => :app do
+    run "cd #{current_path}; rake sunspot:solr:start RAILS_ENV=production --trace"
+  end
+
+  task :solr_stop, :roles => :app do
+    run "cd #{current_path}; rake sunspot:solr:stop RAILS_ENV=production --trace"
   end
 
   task :setup_db, :roles => :app do
@@ -124,4 +128,4 @@ namespace :deploy do
 end
 
 after 'deploy:update_code', 'deploy:upload_stuff'
-after 'deploy:symlink', 'deploy:check_site_setup', 'deploy:update_data'
+after 'deploy:symlink', 'deploy:check_site_setup', 'deploy:update_data', 'deploy:solr_stop', 'deploy:setup_db', 'deploy:load_db', 'deploy:solr_start', 'deploy:reindex', 'deploy:restart'

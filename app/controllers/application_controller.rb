@@ -165,23 +165,52 @@ class ApplicationController < ActionController::Base
     @files_with_errors = country.fund_files.compact.select(&:error)
   end
   
+  def create_csv fund_files, country, tmpfile
+    include_header = true
+
+    fund_files.each do |fund_file|
+      ids = FundItem.find_by_sql('select id from fund_items where fund_file_id = "' + fund_file.id.to_s + '"').map(&id)
+
+      ids.in_groups_of(1000).each do |id_group|
+        id_group = id_group.compact
+        items = FundItem.find(:all, :conditions => "id in (#{id_group.join(',')})")
+        csv_string = get_csv(items, fund_files, country, include_header)
+        include_header = false
+        tmpfile.open
+        tmpfile.write csv_string
+        tmpfile.write "\n"
+        tmpfile.close
+      end
+    end
+  end
+
   def to_csv_file
+    require 'tempfile'
+    tmpfile = Tempfile.new
+    tmpfile.close
+
     country_id = params[:country_id]
     if country_id.to_i == 0
       fund_files = FundFile.find(:all)
-      items = fund_files.collect(&:fund_items).flatten
+      create_csv fund_files, country=nil, tmpfile
+      # items = fund_files.collect(&:fund_items).flatten
     else
       country = Country.find(country_id, :include => :fund_files )  
       fund_files = country.fund_files
-      items = fund_files.collect(&:fund_items).flatten
+      create_csv fund_files, country, tmpfile
+      # items = fund_files.collect(&:fund_items).flatten
     end
 
-    output_csv items, fund_files, country
+    # tmpfile.open
+    # csv = tmpfile.read
+    # send_data csv, :type => "text/plain; charset=utf-8", :filename=>"items.csv", :disposition => 'attachment'
+    send_file tmpfile.path, :type => "text/plain", :filename=>"items.csv", :disposition => 'attachment'
+    tmpfile.close!
   end
 
   private
 
-  def get_csv items, fund_files=nil, country=nil
+  def get_csv items, fund_files=nil, country=nil, include_header=false
     fund_files = items.collect(&:fund_file).uniq unless fund_files
     fund_fields = [
       :country,
@@ -198,10 +227,10 @@ class ApplicationController < ActionController::Base
         :sub_program
       ]
     end
-    fund_fields.delete_if do |field|
-      non_blank_count = fund_files.collect { |fund_file| fund_file.send(field) }.select { |value| !value.blank? }.size
-      delete = (non_blank_count == 0)
-    end
+    # fund_fields.delete_if do |field|
+      # non_blank_count = fund_files.collect { |fund_file| fund_file.send(field) }.select { |value| !value.blank? }.size
+      # delete = (non_blank_count == 0)
+    # end
 
     item_fields = [
       :district,
@@ -220,15 +249,15 @@ class ApplicationController < ActionController::Base
       :sub_program_name
     ]
 
-    item_fields.delete_if do |field|
-      non_blank_count = items.collect { |item| item.send(field) }.select { |value| !value.blank? }.size
-      delete = (non_blank_count == 0)
-    end
+    # item_fields.delete_if do |field|
+      # non_blank_count = items.collect { |item| item.send(field) }.select { |value| !value.blank? }.size
+      # delete = (non_blank_count == 0)
+    # end
     
     all_fields = (fund_fields + [:program] + item_fields + [:direct_link]).map { |field| FundItem.human_attribute_name(field) }
 
     output = FasterCSV.generate do |csv|
-      csv << all_fields
+      csv << all_fields if include_header
       items.each do |item|
         program = item.european_fund_name.blank? ? item.fund_file.program : item.european_fund_name
         direct_link = item.fund_file.direct_link
@@ -239,9 +268,8 @@ class ApplicationController < ActionController::Base
   end
     
   def output_csv items, fund_files=nil, country=nil
-    csv_string = get_csv(items, fund_files, country)
+    csv_string = get_csv(items, fund_files, country, true)
     send_data csv_string, :type => "text/plain", :filename=>"items.csv", :disposition => 'attachment'
-    # render :text => output, :content_type => "text/csv"
   end
 
   def authenticate

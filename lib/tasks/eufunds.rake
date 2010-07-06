@@ -29,6 +29,7 @@ namespace :eufunds do
     puts "reindexing finished"
   end
 
+  desc "reload a file or country"
   task :reload => :environment do
     loader = DataLoader.new
     if country = ENV['country']
@@ -71,7 +72,8 @@ namespace :eufunds do
     text = files.collect{|i| "#{i.country}\t#{i.region.strip}\t#{i.parsed_data_file}" }.sort
     File.open(RAILS_ROOT + '/files_with_unknown_sub_program.txt', 'w') {|f| f.write text.join("\n")}
   end
-  
+
+  desc "bad mapping report"  
   task :bad_mapping => :environment do
     f = FundFile.all.select {|x| !x.error.blank? && x.error[/mappings/] }
     text = f.collect {|x| lines = x.error.split("\n") ; [x.country, x.region, x.parsed_data_file, lines[1], lines[2]].join("\t") }.join("\n")
