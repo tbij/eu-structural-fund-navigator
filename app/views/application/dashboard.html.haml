@@ -13,7 +13,7 @@
     - @top_priority.each do |country|
       %tr
         %td
-          = country # link_to country, (@top_countries_by_name[country] ? to_excel_url(:country_id => @top_countries_by_name[country].first.id) : '')
+          = link_to country, (@top_countries_by_name[country] ? to_excel_url(:country_id => @top_countries_by_name[country].first.id) : '')
         %td{:style => 'text-align: right; color: darkgreen;'}
           = @percent_loaded_by_country[country] == 0 ? '' : number_to_percentage(@percent_loaded_by_country[country], :precision => 0)
         %td{:style => 'text-align: right; color: darkgreen;'}
@@ -23,7 +23,7 @@
         %td{:style => "text-align: right; color: #{@top_error_colour};"}
           = @percent_errors_by_country[country] == 0 ? '' : number_to_percentage(@percent_errors_by_country[country], :precision => 0)
         %td{:style => "text-align: right; color: #{@top_error_colour};"}
-          = @file_errors_by_country[country] == 0 ? '' : number_with_delimiter(@file_errors_by_country[country])
+          = @file_errors_by_country[country] == 0 ? '' : link_to(number_with_delimiter(@file_errors_by_country[country]), error_url(country.downcase) )
         %td{:style => 'text-align: right;'}
           = number_with_delimiter @files_by_country[country]
     %tr
@@ -57,7 +57,7 @@
     - @other_items_by_country.keys.compact.sort.each do |country|
       %tr
         %td
-          = country # link_to country, to_excel_url(:country_id => @other_countries_by_name[country].first.id)
+          = link_to country, to_excel_url(:country_id => @other_countries_by_name[country].first.id)
         %td{:style => 'text-align: right; color: darkgreen;'}
           = @percent_loaded_by_country[country] == 0 ? '' : number_to_percentage(@percent_loaded_by_country[country], :precision => 0)
         %td{:style => 'text-align: right; color: darkgreen;'}
@@ -67,7 +67,7 @@
         %td{:style => "text-align: right; color: #{@other_error_colour};"}
           = @percent_errors_by_country[country] == 0 ? '' : number_to_percentage(@percent_errors_by_country[country], :precision => 0)
         %td{:style => "text-align: right; color: #{@other_error_colour};"}
-          = @file_errors_by_country[country] == 0 ? '' : number_with_delimiter(@file_errors_by_country[country])
+          = @file_errors_by_country[country] == 0 ? '' : link_to(number_with_delimiter(@file_errors_by_country[country]), error_url(country.downcase) )
         %td{:style => 'text-align: right;'}
           = number_with_delimiter @files_by_country[country]
     %tr

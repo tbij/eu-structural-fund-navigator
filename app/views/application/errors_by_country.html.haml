@@ -7,4 +7,4 @@
   %li
     %b= h fund_file.parsed_data_file
     %br
-    = fund_file.error.gsub('<','&lt;').gsub("\n",'<br />')
+    = fund_file.error.gsub('<','&lt;').gsub("\n",'<br />').gsub(/in .+/,'')
