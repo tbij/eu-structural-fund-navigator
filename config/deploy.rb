@@ -96,6 +96,9 @@ namespace :deploy do
   end
 
   task :reindex, :roles => :app do
+    run "cd #{current_path}; rake sunspot:solr:stop RAILS_ENV=production --trace"
+    run "cd #{current_path}; rake sunspot:solr:start RAILS_ENV=production --trace"
+    sleep 5
     run "cd #{current_path}; rake eufunds:reindex RAILS_ENV=production --trace"
   end
 
@@ -128,4 +131,4 @@ namespace :deploy do
 end
 
 after 'deploy:update_code', 'deploy:upload_stuff'
-after 'deploy:symlink', 'deploy:check_site_setup', 'deploy:update_data', 'deploy:solr_stop', 'deploy:setup_db', 'deploy:load_db', 'deploy:solr_start', 'deploy:reindex', 'deploy:restart'
+after 'deploy:symlink', 'deploy:check_site_setup', 'deploy:update_data', 'deploy:setup_db', 'deploy:load_db', 'deploy:restart'

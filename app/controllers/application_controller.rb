@@ -169,43 +169,48 @@ class ApplicationController < ActionController::Base
     include_header = true
 
     fund_files.each do |fund_file|
-      ids = FundItem.find_by_sql('select id from fund_items where fund_file_id = "' + fund_file.id.to_s + '"').map(&id)
+      ids = FundItem.find_by_sql('select id from fund_items where fund_file_id = "' + fund_file.id.to_s + '"').map(&:id)
 
-      ids.in_groups_of(1000).each do |id_group|
+      ids.in_groups_of(1000).each do |id_group|        
         id_group = id_group.compact
         items = FundItem.find(:all, :conditions => "id in (#{id_group.join(',')})")
         csv_string = get_csv(items, fund_files, country, include_header)
         include_header = false
-        tmpfile.open
         tmpfile.write csv_string
-        tmpfile.write "\n"
-        tmpfile.close
+        tmpfile.flush
       end
     end
   end
 
   def to_csv_file
-    require 'tempfile'
-    tmpfile = Tempfile.new
-    tmpfile.close
+    tmpfile = nil
+    datetime = "#{Date.today.to_s}_#{Time.now.to_s(:short)[-5..-1].sub(':','')}"
+    path = File.join(File.expand_path(Dir::tmpdir), "items_#{datetime}_#{Time.now.to_i}")
+    begin
+      require 'tempfile'
+      tmpfile = File.new(path, 'w')
+      name = nil
+      country_id = params[:country_id]
+      if country_id.to_i == 0
+        fund_files = FundFile.find(:all)
+        create_csv fund_files, country=nil, tmpfile
+        name = 'all_countries'
+      else
+        country = Country.find(country_id, :include => :fund_files )
+        name = country.name.downcase
+        fund_files = country.fund_files
+        create_csv fund_files, country, tmpfile
+      end
+      tmpfile.close
 
-    country_id = params[:country_id]
-    if country_id.to_i == 0
-      fund_files = FundFile.find(:all)
-      create_csv fund_files, country=nil, tmpfile
-      # items = fund_files.collect(&:fund_items).flatten
-    else
-      country = Country.find(country_id, :include => :fund_files )  
-      fund_files = country.fund_files
-      create_csv fund_files, country, tmpfile
-      # items = fund_files.collect(&:fund_items).flatten
+      send_file path, :type => "text/plain", :filename=>"#{name}_#{datetime}.csv", :disposition => 'attachment'
+    ensure
+      tempfiles = Dir.glob(File.join(File.expand_path(Dir::tmpdir), "items_*"))
+      tempfiles.each do |file|
+        file_older_than_a_day = ((Time.now - File.ctime(file)) > 1.day)
+        File.delete(file) if file_older_than_a_day
+      end
     end
-
-    # tmpfile.open
-    # csv = tmpfile.read
-    # send_data csv, :type => "text/plain; charset=utf-8", :filename=>"items.csv", :disposition => 'attachment'
-    send_file tmpfile.path, :type => "text/plain", :filename=>"items.csv", :disposition => 'attachment'
-    tmpfile.close!
   end
 
   private
