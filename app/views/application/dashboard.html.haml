@@ -23,7 +23,7 @@
         %td{:style => "text-align: right; color: #{@top_error_colour};"}
           = @percent_errors_by_country[country] == 0 ? '' : number_to_percentage(@percent_errors_by_country[country], :precision => 0)
         %td{:style => "text-align: right; color: #{@top_error_colour};"}
-          = @file_errors_by_country[country] == 0 ? '' : link_to(number_with_delimiter(@file_errors_by_country[country]), error_url(country.downcase) )
+          = (!@file_errors_by_country[country] || @file_errors_by_country[country] == 0) ? '' : link_to(number_with_delimiter(@file_errors_by_country[country]), error_url(country.downcase) )
         %td{:style => 'text-align: right;'}
           = number_with_delimiter @files_by_country[country]
     %tr
@@ -67,7 +67,7 @@
         %td{:style => "text-align: right; color: #{@other_error_colour};"}
           = @percent_errors_by_country[country] == 0 ? '' : number_to_percentage(@percent_errors_by_country[country], :precision => 0)
         %td{:style => "text-align: right; color: #{@other_error_colour};"}
-          = @file_errors_by_country[country] == 0 ? '' : link_to(number_with_delimiter(@file_errors_by_country[country]), error_url(country.downcase) )
+          = (!@file_errors_by_country[country] || @file_errors_by_country[country] == 0) ? '' : link_to(number_with_delimiter(@file_errors_by_country[country]), error_url(country.downcase) )
         %td{:style => 'text-align: right;'}
           = number_with_delimiter @files_by_country[country]
     %tr

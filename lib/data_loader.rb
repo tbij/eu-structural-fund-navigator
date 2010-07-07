@@ -378,7 +378,8 @@ end|
         :region => fund_file.region,
         :program => fund_file.program,
         :currency => fund_file.currency,
-        :sub_program => fund_file.sub_program_information,
+        :sub_program_information => fund_file.sub_program_information,
+        :operational_program => fund_file.operational_program,
         :original_file_name => fund_file.original_file_name,
         :parsed_data_file => fund_file.parsed_data_file,
         :direct_link => direct_link,
@@ -530,7 +531,7 @@ end|
   end
 
   def fund_file_migration
-    %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string\n| +
+    %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string agency:string program:string operational_program:string sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string\n| +
     %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
   end
 
@@ -595,11 +596,10 @@ end|
         puts 'ASCII encoding'
       else
         puts "converting from #{charset} to UTF-8"
-        content = Iconv.conv('utf-8', charset, content)
-        puts "writing #{file_name} as UTF-8"
-        File.open(file_name, 'w') do |file|
-          file.write(content)
-        end
+        content = Iconv.conv('utf-8', charset, content) 
+        # utf8_name = "#{file_name}.utf8"
+        # puts "writing #{utf8_name} as UTF-8"
+        # File.open(utf8_name, 'w') { |file| file.write(content) }
     end
     content
   end
