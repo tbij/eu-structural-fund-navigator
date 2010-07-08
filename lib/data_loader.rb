@@ -655,8 +655,6 @@ end|
       amount_estimated_eu_funding = record.amount_allocated_eu_funds
 
     elsif saved_fund_file && saved_fund_file.co_financing_rate
-      puts "attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record) #{attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)}"
-      puts record.inspect
       
       if attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)
         estimated = record.amount_allocated_eu_funds_and_public_funds_combined
@@ -681,14 +679,10 @@ end|
         amount_estimated_eu_funding = (estimated * saved_fund_file.co_financing_rate).to_i
       end
 
-    else
-      puts saved_fund_file.inspect
     end
     
     if amount_estimated_eu_funding
       record.morph('amount_estimated_eu_funding', amount_estimated_eu_funding)
-    else
-      raise record.inspect
     end
 
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
