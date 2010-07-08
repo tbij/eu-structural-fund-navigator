@@ -38,10 +38,16 @@
   #eu_amount
     %p.eu_amount
       %span 
-        at least
+        A declared
       %span.eu_amount= number_to_currency(@min_eu_amount_in_euros, :unit => "&euro;", :precision => 0)
       %span
         in allocated EU Funds
+    %p.eu_amount
+      %span 
+        An estimated
+      %span.eu_amount= number_to_currency(@amount_estimated_eu_funding_in_euro, :unit => "&euro;", :precision => 0)
+      %span
+        in total EU Funding
   .items
     %table
       %thead
@@ -56,9 +62,9 @@
             %br
             &amp; Description
           %th
-            Amount Allocated
+            Estimated
             %br
-            EU Funds
+            EU Funding
           %th Fund
       %tbody
         - @results.each_with_index do |item, index|
@@ -85,10 +91,10 @@
               %br
               %span.translation{:id => "translation_#{index}"}
             %td.amount
-              = item.amount_allocated_eu_funds ? "#{number_with_delimiter(item.amount_allocated_eu_funds)} #{h(item.currency)}" : ''
+              = item.amount_estimated_eu_funding ? "#{number_with_delimiter(item.amount_estimated_eu_funding)} #{h(item.currency)}" : ''
               - if item.currency != 'EUR'
                 %br
-                %span.euro_conversion= item.amount_allocated_eu_funds_in_euro ? "#{number_with_delimiter(item.amount_allocated_eu_funds_in_euro)} EUR" : ''                
+                %span.euro_conversion= item.amount_estimated_eu_funding_in_euro ? "#{number_with_delimiter(item.amount_estimated_eu_funding_in_euro)} EUR" : ''
             %td= h item.fund_name.to_s.strip
   #pagination
     %p.pagination

@@ -96,7 +96,13 @@ namespace :deploy do
   end
 
   task :reindex, :roles => :app do
-    run "cd #{current_path}; rake sunspot:solr:stop RAILS_ENV=production --trace"
+    begin
+      run "cd #{current_path}; rake sunspot:solr:stop RAILS_ENV=production --trace"
+    rescue Exception => e
+      puts e.class.name
+      puts e.to_s
+    end
+
     run "cd #{current_path}; rake sunspot:solr:start RAILS_ENV=production --trace"
     sleep 5
     run "cd #{current_path}; rake eufunds:reindex RAILS_ENV=production --trace"

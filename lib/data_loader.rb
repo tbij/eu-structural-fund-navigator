@@ -22,7 +22,7 @@ class DataLoader
       else
         field.to_sym
       end
-    end.flatten
+    end.flatten + [:amount_estimated_eu_funding, :amount_estimated_eu_funding_in_euro]
   end
 
   def setup_database file_name
@@ -429,6 +429,10 @@ end|
     end
   end
 
+  def attribute_present? symbol, record
+    present = !attribute_missing?(symbol, record)
+  end
+  
   def attribute_missing? symbol, record
     !record.respond_to?(symbol) || record.send(symbol).blank?
   end
@@ -644,6 +648,48 @@ end|
     currency = get_currency(record, saved_fund_file)
 
     record.morph(:currency, currency)
+
+    amount_estimated_eu_funding = nil
+    
+    if attribute_present?(:amount_allocated_eu_funds, record)
+      amount_estimated_eu_funding = record.amount_allocated_eu_funds
+
+    elsif saved_fund_file && saved_fund_file.co_financing_rate
+      puts "attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record) #{attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)}"
+      puts record.inspect
+      
+      if attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)
+        estimated = record.amount_allocated_eu_funds_and_public_funds_combined
+        estimated += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
+        estimated += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
+        estimated += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
+        amount_estimated_eu_funding = (estimated * saved_fund_file.co_financing_rate).to_i        
+      
+      elsif attribute_present?(:amount_allocated_public_funds, record)
+        non_eu = record.amount_allocated_public_funds
+        non_eu += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
+        non_eu += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
+        non_eu += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
+                
+        amount_estimated_eu_funding = (non_eu / ( (1 / saved_fund_file.co_financing_rate) - 1 ) ).to_i
+
+      elsif attribute_present?(:amount_paid, record)
+        estimated = record.amount_paid
+        estimated += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
+        estimated += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
+        estimated += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
+        amount_estimated_eu_funding = (estimated * saved_fund_file.co_financing_rate).to_i
+      end
+
+    else
+      puts saved_fund_file.inspect
+    end
+    
+    if amount_estimated_eu_funding
+      record.morph('amount_estimated_eu_funding', amount_estimated_eu_funding)
+    else
+      raise record.inspect
+    end
 
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
 

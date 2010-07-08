@@ -50,6 +50,20 @@ class Search
     end
   end
 
+  def amount_estimated_eu_funding_in_euro
+    if @total == 0
+      0
+    else
+      id_sets = @terms.collect { |term| do_search_ids(term, @total, 1) }
+      ids = id_sets.flatten.uniq.sort
+      if ids.empty?
+        0
+      else
+        FundItem.sum(:amount_estimated_eu_funding_in_euro, :conditions => "id in (#{ids.join(',')})")
+      end
+    end
+  end
+
   def all_results
     result_sets = @terms.collect { |term| do_search(term, @total, 1) }
     @all_results = []

@@ -36,6 +36,7 @@ class ApplicationController < ActionController::Base
       @query = @search.joined_terms
       @result_set = @search.largest_result_set
       @min_eu_amount_in_euros = @search.min_eu_amount_in_euros
+      @amount_estimated_eu_funding_in_euro = @search.amount_estimated_eu_funding_in_euro
       params['q'] = @query
 
       if params['f'] == 'csv'
@@ -240,6 +241,7 @@ class ApplicationController < ActionController::Base
       :description,
       :operational_program_name,
 
+      :amount_estimated_eu_funding_in_euro,
       :amount_paid_in_euro,
       :amount_allocated_eu_funds_in_euro,
       :amount_allocated_eu_funds_and_public_funds_combined_in_euro,
@@ -252,6 +254,7 @@ class ApplicationController < ActionController::Base
       :amount_eligible_in_euro,
 
       :currency,
+      :amount_estimated_eu_funding,
       :amount_paid,
       :amount_allocated_eu_funds,
       :amount_allocated_eu_funds_and_public_funds_combined,
