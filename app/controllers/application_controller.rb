@@ -222,7 +222,9 @@ class ApplicationController < ActionController::Base
       :country,
       :region,
       # :program,
-      :operational_program
+      :operational_program,
+      :op_name,
+      :co_financing_rate
     ]
     # fund_fields.delete_if do |field|
       # non_blank_count = fund_files.collect { |fund_file| fund_file.send(field) }.select { |value| !value.blank? }.size
@@ -277,7 +279,6 @@ class ApplicationController < ActionController::Base
 
     fund_fields_suffix = [
       :sub_program_information,
-      :agency,
       :min_percent_funded_by_eu_funds,
       :max_percent_funded_by_eu_funds,
       :next_update,

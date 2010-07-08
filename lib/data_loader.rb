@@ -49,7 +49,7 @@ class DataLoader
   def reload_country country, master_file_name, fx_rates_file_name
     @fx_rates = load_fx_rates(fx_rates_file_name)
     fund_files = load_fund_files(master_file_name)
-    files_with_data = with_data(fund_files).select {|f| f.country_or_countries.downcase == country.downcase}
+    files_with_data = with_data(fund_files).select {|f| f.country.downcase == country.downcase}
     reload_files files_with_data, master_file_name, true
   end
 
@@ -380,11 +380,12 @@ end|
         :currency => fund_file.currency,
         :sub_program_information => fund_file.sub_program_information,
         :operational_program => fund_file.operational_program,
+        :op_name => fund_file.op_name,
+        :co_financing_rate => ( (fund_file.co_financing_rate && fund_file.co_financing_rate.include?('%')) ? fund_file.co_financing_rate.sub('%','').to_f / 100.to_f : nil),
         :original_file_name => fund_file.original_file_name,
         :parsed_data_file => fund_file.parsed_data_file,
         :direct_link => direct_link,
         :uri_to_landing_page => fund_file.uri_to_landing_page,
-        :agency => fund_file.agency_that_oversees_funding,
         :max_percent_funded_by_eu_funds => fund_file.respond_to?(:percent_funded_by_eu_funds_maximum) ? fund_file.percent_funded_by_eu_funds_maximum : nil,
         :min_percent_funded_by_eu_funds => fund_file.percent_funded_by_eu_funds_minimum,
         :last_updated => fund_file.last_updated,
@@ -397,7 +398,7 @@ end|
       attributes = fund_file_attributes fund_file
       new_fund_file = model.create attributes
 
-      country = country_model.find_or_create_by_name(fund_file.country_or_countries)
+      country = country_model.find_or_create_by_name(fund_file.country)
       fund_file_country_model.create({:country_id => country.id, :fund_file_id => new_fund_file.id})
       new_fund_file
     else
@@ -499,7 +500,7 @@ end|
 
   def load_fund_files file_name
     csv = IO.read(file_name)
-    csv.sub!('Country/Countries','Country_or_Countries')
+    csv.sub!('Country/Countries','Country')
     csv.sub!('Excel/PDF','Excel_or_PDF')
     csv.sub!('EU/Nation/Region','EU_or_Nation_or_Region')
     csv.sub!('Sub-region / ','Sub-region_or_')
@@ -531,7 +532,7 @@ end|
   end
 
   def fund_file_migration
-    %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string agency:string program:string operational_program:string sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string\n| +
+    %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string program:string operational_program:string op_name:string co_financing_rate:float sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string\n| +
     %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
   end
 
