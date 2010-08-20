@@ -103,6 +103,15 @@ class DataLoader
     puts `#{line}`
   end
 
+  def correct_size_of_amount_columns
+    Dir.chdir(RAILS_ROOT)
+    fund_items_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_items.rb").first
+    text = IO.read(fund_items_migration)
+    File.open(fund_items_migration, 'w') do |f|
+      f.write text.gsub(/t\.integer (:amount_\S*)/, 't.column \1, :bigint')
+    end
+  end
+
   def add_index
     Dir.chdir(RAILS_ROOT)
     fund_files_migration = Dir.glob("#{RAILS_ROOT}/db/migrate/*_create_fund_files.rb").first
@@ -320,6 +329,7 @@ end|
     fund_file_migration.each_line {|line| cmd line.strip }
     fund_item_migration(fields).each_line {|line| cmd line.strip }
     add_index
+    correct_size_of_amount_columns
   end
 
   def migrate_database
@@ -429,6 +439,10 @@ end|
     end
   end
 
+  def not_zero? symbol, record
+    attribute_present?(symbol, record) && (record.send(symbol) > 0)
+  end
+
   def attribute_present? symbol, record
     present = !attribute_missing?(symbol, record)
   end
@@ -459,7 +473,8 @@ end|
     if attributes[:currency].blank?
       raise "fund item currency should not be blank: #{attributes.inspect} ... #{saved_fund_file.inspect}"
     end
-    record_model.create attributes
+    fund_item = record_model.create attributes
+    fund_item
   end
 
   def record_model
@@ -625,27 +640,27 @@ end|
   end
 
   def add_private_and_voluntary_and_other_public_funds record, estimated
-    estimated += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
-    estimated += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
-    estimated += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
+    estimated += record.amount_allocated_private_funds if not_zero?(:amount_allocated_private_funds, record)
+    estimated += record.amount_allocated_voluntary_funds if not_zero?(:amount_allocated_voluntary_funds, record)
+    estimated += record.amount_allocated_other_public_funds if not_zero?(:amount_allocated_other_public_funds, record)
     estimated
   end
 
   def calculate_amount_estimated_eu_funding record, saved_fund_file
-    if attribute_present?(:amount_allocated_eu_funds, record)
+    if not_zero?(:amount_allocated_eu_funds, record)
       record.amount_allocated_eu_funds
 
     elsif saved_fund_file && saved_fund_file.co_financing_rate
 
-      if attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)
+      if not_zero?(:amount_allocated_eu_funds_and_public_funds_combined, record)
         estimated = add_private_and_voluntary_and_other_public_funds(record, record.amount_allocated_eu_funds_and_public_funds_combined)
         (estimated * saved_fund_file.co_financing_rate).to_i
 
-      elsif attribute_present?(:amount_allocated_public_funds, record)
+      elsif not_zero?(:amount_allocated_public_funds, record)
         non_eu = add_private_and_voluntary_and_other_public_funds(record, record.amount_allocated_public_funds)
         (non_eu / ( (1 / saved_fund_file.co_financing_rate) - 1 ) ).to_i
 
-      elsif attribute_present?(:amount_paid, record)
+      elsif not_zero?(:amount_paid, record)
         estimated = add_private_and_voluntary_and_other_public_funds(record, record.amount_paid)
         (estimated * saved_fund_file.co_financing_rate).to_i
 
@@ -667,7 +682,8 @@ end|
       begin
         value = row[original]
         if normalized.to_s[/^amount_(.+)$/]
-          record.morph($1.to_sym, value)
+          amount_as_text_attribute = $1.to_sym
+          record.morph(amount_as_text_attribute, value)
           value = convert_value value
         end
         record.morph(normalized, value)

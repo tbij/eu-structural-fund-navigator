@@ -93,9 +93,18 @@ describe DataLoader do
             end
 
             describe 'and "amount paid" is available' do
-              it 'should return the co-financing rate multiplied by the "amount paid"' do
+              before do
                 @record.stub!(:amount_paid).and_return 1000
+              end
+              it 'should return the co-financing rate multiplied by the "amount paid"' do
                 check_amount 1600 * @co_financing_rate
+              end
+
+              describe 'and "amount allocated eu funds" is 0' do
+                it 'should return the co-financing rate multiplied by the "amount paid"' do
+                  @record.stub!(:amount_allocated_eu_funds).and_return 0
+                  check_amount 1600 * @co_financing_rate
+                end
               end
             end
           end
@@ -380,6 +389,8 @@ describe DataLoader do
 
     @loader.convert_value('54 429.60').should == 54429
     @loader.convert_value('54  429.60').should == 54429
+
+    @loader.convert_value('6027826613.92').should == 6027826613
   end
 
   def fund_files
