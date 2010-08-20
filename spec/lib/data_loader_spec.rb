@@ -43,6 +43,67 @@ describe DataLoader do
     @loader.stub!(:cmd)
   end
 
+  describe 'when calculating amount of estimated EU funding' do
+    before do
+      @record = mock(Object)
+      @record.stub!(:amount_allocated_private_funds).and_return 100
+      @record.stub!(:amount_allocated_voluntary_funds).and_return 200
+      @record.stub!(:amount_allocated_other_public_funds).and_return 300
+      @co_financing_rate = 0.2
+      @saved_fund_file = mock(Object, :co_financing_rate => @co_financing_rate)
+    end
+    def check_amount expected
+      @loader.calculate_amount_estimated_eu_funding(@record, @saved_fund_file).should == expected
+    end
+    describe 'and amount allocated eu funds is present' do
+      it 'should return amount allocated eu funds' do
+        @record.stub!(:amount_allocated_eu_funds).and_return 1000
+        check_amount 1000
+      end
+    end
+    describe 'and amount allocated eu funds is not present' do
+      describe 'and co-financing rate is not specified' do
+        it 'should return nil' do
+          @record.stub!(:co_financing_rate).and_return nil
+          check_amount nil
+        end
+      end
+
+      describe 'and co-financing rate is specified' do
+        describe 'and "amount allocated eu funds and public funds combined" is available' do
+          it 'should return the co-financing rate multiplied by the sum of the "amount allocated eu funds and public funds combined", and any private funds, voluntary funds, and other public funds' do
+            @record.stub!(:amount_allocated_eu_funds_and_public_funds_combined).and_return 1000
+            check_amount 1600 * @co_financing_rate
+          end
+        end
+
+        describe 'and "amount allocated eu funds and public funds combined" is not available' do
+          describe 'and "amount allocated public funds" is available' do
+            it 'should return [“non-EU funding” [divided by]  (100% -  co-financing percentage rate)] x co-financing rate percentage' do
+              @record.stub!(:amount_allocated_public_funds).and_return 1000
+              check_amount ( (1600 / (1 - @co_financing_rate)) * @co_financing_rate).to_i
+            end
+          end
+
+          describe 'and "amount allocated public funds" is not available' do
+            describe 'and "amount paid" is not available' do
+              it 'should return nil' do
+                check_amount nil
+              end
+            end
+
+            describe 'and "amount paid" is available' do
+              it 'should return the co-financing rate multiplied by the "amount paid"' do
+                @record.stub!(:amount_paid).and_return 1000
+                check_amount 1600 * @co_financing_rate
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
   describe 'when loading database' do
     it 'should pick files with data' do
       @loader.with_data([@fund_file]).should == [@fund_file]

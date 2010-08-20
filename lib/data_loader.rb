@@ -15,7 +15,7 @@ class DataLoader
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
     fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
-    fields.collect do |field| 
+    fields.collect do |field|
       field = field.to_s.sub(/_field$/,'')
       if field[/^amount_/]
         [field.sub('amount_','').to_sym, field.to_sym, "#{field}_in_euro".to_sym]
@@ -30,7 +30,7 @@ class DataLoader
     reset_database fields
   end
 
-  def load_database file_name, fx_rates_file_name 
+  def load_database file_name, fx_rates_file_name
     @fx_rates = load_fx_rates(fx_rates_file_name)
     migrate_database
     fund_files = load_fund_files file_name
@@ -71,7 +71,7 @@ class DataLoader
       if force_reload && saved_fund_file
         begin
           saved_fund_file.fund_items.each {|item| item.destroy}
-          records = load_fund_file(fund_file, saved_fund_file) 
+          records = load_fund_file(fund_file, saved_fund_file)
           if records
             previous_record = nil
             records.each do |record|
@@ -81,7 +81,7 @@ class DataLoader
             puts "reloaded #{records.size} records"
             saved_fund_file.error = nil
             saved_fund_file.save
-          else          
+          else
             log_error saved_fund_file, "ERROR: no records for #{fund_file.parsed_data_file}"
           end
         rescue Exception => e
@@ -92,7 +92,7 @@ class DataLoader
   end
 
   def with_data fund_files
-    fund_files.select do |f| 
+    fund_files.select do |f|
       !f.parsed_data_file.blank? &&
         !f.parsed_data_file[/no data/i]
     end
@@ -109,7 +109,7 @@ class DataLoader
     text = IO.read(fund_files_migration)
     File.open(fund_files_migration, 'w') do |f|
       f.write text.sub(%Q|t.timestamps
-    end|, 
+    end|,
     %Q|t.timestamps
     end
     add_index :fund_files, :currency|)
@@ -119,7 +119,7 @@ class DataLoader
     text = IO.read(fund_items_migration)
     File.open(fund_items_migration, 'w') do |f|
       f.write text.sub('t.string :subcontractor','t.text :subcontractor').sub('t.string :description','t.text :description').sub(%Q|t.timestamps
-    end|, 
+    end|,
     %Q|t.timestamps
     end
     add_index :fund_items, :fund_file_id
@@ -129,7 +129,7 @@ class DataLoader
     text = IO.read(fund_file_countries_migration)
     File.open(fund_file_countries_migration, 'w') do |f|
       f.write text.sub(%Q|t.timestamps
-    end|, 
+    end|,
     %Q|t.timestamps
     end
     add_index :fund_file_countries, :fund_file_id
@@ -153,16 +153,16 @@ class DataLoader
   searchable :auto_index => false do
     text :beneficiary, :project_title, :description, :subcontractor
 
-    string :eu_fund_name do 
+    string :eu_fund_name do
       fund_name
     end
-    string :fund_country do 
+    string :fund_country do
       country
     end
-    string :fund_region do 
+    string :fund_region do
       region
     end
-    
+
     integer :fund_file_id
   end
 
@@ -177,7 +177,7 @@ class DataLoader
   def region
     fund_file.region.sub(/all regions/i, 'All regions')
   end
-  
+
   def set_year
     if year.blank?
       if !date.blank?
@@ -288,7 +288,7 @@ end|
   end
   def crossborder_fund_files
     fund_files.select {|f| f.is_a?(CrossborderFundFile)}
-  end  
+  end
   def transnational_fund_files
     fund_files.select {|f| f.is_a?(TransnationalFundFile)}
   end
@@ -326,19 +326,19 @@ end|
     %Q|rake db:migrate RAILS_ENV=#{RAILS_ENV} --trace
     rake db:reset RAILS_ENV=#{RAILS_ENV} --trace
     rm spec/controllers/*_controller_spec.rb|.each_line {|line| cmd line.strip }
-    
+
     if RAILS_ENV == 'development'
       cmd "rake db:test:clone_structure RAILS_ENV=#{RAILS_ENV}"
     end
 
     add_associations
   end
-  
+
   def populate_database fund_files, files_with_data
     fund_files.each do |fund_file|
       saved_fund_file = save_fund_file(fund_file)
       if saved_fund_file && files_with_data.include?(fund_file)
-        records = load_fund_file(fund_file, saved_fund_file) 
+        records = load_fund_file(fund_file, saved_fund_file)
         if records
           save_records records, saved_fund_file
         else
@@ -432,11 +432,11 @@ end|
   def attribute_present? symbol, record
     present = !attribute_missing?(symbol, record)
   end
-  
+
   def attribute_missing? symbol, record
     !record.respond_to?(symbol) || record.send(symbol).blank?
   end
-  
+
   def save_record record, previous_record=nil, saved_fund_file=nil
     if attribute_missing?(:beneficiary, record) && attribute_missing?(:project_title, record)
       log_previous = previous_record ? "\nprevious_record: #{previous_record.inspect}" : ''
@@ -523,7 +523,7 @@ end|
     end.select {|x| !x[1].blank?}
     field_names
   end
-  
+
   def destroy_migration
     %Q|./script/destroy scaffold_resource fund_file_country\n| +
     %Q|./script/destroy scaffold_resource country\n| +
@@ -592,7 +592,7 @@ end|
 
   def convert_encoding content, file_name
     charset = CMess::GuessEncoding::Automatic.guess(content)
-    case charset 
+    case charset
       when 'UNKNOWN'
         puts 'unknown encoding'
       when 'UTF-8'
@@ -601,14 +601,14 @@ end|
         puts 'ASCII encoding'
       else
         puts "converting from #{charset} to UTF-8"
-        content = Iconv.conv('utf-8', charset, content) 
+        content = Iconv.conv('utf-8', charset, content)
         # utf8_name = "#{file_name}.utf8"
         # puts "writing #{utf8_name} as UTF-8"
         # File.open(utf8_name, 'w') { |file| file.write(content) }
     end
     content
   end
-  
+
   def get_currency record, saved_fund_file
     attributes = record.morph_attributes
     if saved_fund_file && saved_fund_file.respond_to?(:currency)
@@ -624,6 +624,39 @@ end|
     attributes[:currency]
   end
 
+  def add_private_and_voluntary_and_other_public_funds record, estimated
+    estimated += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
+    estimated += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
+    estimated += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
+    estimated
+  end
+
+  def calculate_amount_estimated_eu_funding record, saved_fund_file
+    if attribute_present?(:amount_allocated_eu_funds, record)
+      record.amount_allocated_eu_funds
+
+    elsif saved_fund_file && saved_fund_file.co_financing_rate
+
+      if attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)
+        estimated = add_private_and_voluntary_and_other_public_funds(record, record.amount_allocated_eu_funds_and_public_funds_combined)
+        (estimated * saved_fund_file.co_financing_rate).to_i
+
+      elsif attribute_present?(:amount_allocated_public_funds, record)
+        non_eu = add_private_and_voluntary_and_other_public_funds(record, record.amount_allocated_public_funds)
+        (non_eu / ( (1 / saved_fund_file.co_financing_rate) - 1 ) ).to_i
+
+      elsif attribute_present?(:amount_paid, record)
+        estimated = add_private_and_voluntary_and_other_public_funds(record, record.amount_paid)
+        (estimated * saved_fund_file.co_financing_rate).to_i
+
+      else
+        nil
+      end
+    else
+      nil
+    end
+  end
+
   def create_record row, field_names, saved_fund_file
     record = FundRecord.new
     record.fund_file_id = saved_fund_file.id if saved_fund_file
@@ -631,7 +664,7 @@ end|
     field_names.each do |field|
       normalized = field[0]
       original = field[1]
-      begin       
+      begin
         value = row[original]
         if normalized.to_s[/^amount_(.+)$/]
           record.morph($1.to_sym, value)
@@ -646,44 +679,10 @@ end|
     end
 
     currency = get_currency(record, saved_fund_file)
-
     record.morph(:currency, currency)
 
-    amount_estimated_eu_funding = nil
-    
-    if attribute_present?(:amount_allocated_eu_funds, record)
-      amount_estimated_eu_funding = record.amount_allocated_eu_funds
-
-    elsif saved_fund_file && saved_fund_file.co_financing_rate
-      
-      if attribute_present?(:amount_allocated_eu_funds_and_public_funds_combined, record)
-        estimated = record.amount_allocated_eu_funds_and_public_funds_combined
-        estimated += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
-        estimated += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
-        estimated += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
-        amount_estimated_eu_funding = (estimated * saved_fund_file.co_financing_rate).to_i        
-      
-      elsif attribute_present?(:amount_allocated_public_funds, record)
-        non_eu = record.amount_allocated_public_funds
-        non_eu += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
-        non_eu += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
-        non_eu += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
-                
-        amount_estimated_eu_funding = (non_eu / ( (1 / saved_fund_file.co_financing_rate) - 1 ) ).to_i
-
-      elsif attribute_present?(:amount_paid, record)
-        estimated = record.amount_paid
-        estimated += record.amount_allocated_private_funds if attribute_present?(:amount_allocated_private_funds, record)
-        estimated += record.amount_allocated_voluntary_funds if attribute_present?(:amount_allocated_voluntary_funds, record)
-        estimated += record.amount_allocated_other_public_funds if attribute_present?(:amount_allocated_other_public_funds, record)
-        amount_estimated_eu_funding = (estimated * saved_fund_file.co_financing_rate).to_i
-      end
-
-    end
-    
-    if amount_estimated_eu_funding
-      record.morph('amount_estimated_eu_funding', amount_estimated_eu_funding)
-    end
+    amount_estimated_eu_funding = calculate_amount_estimated_eu_funding(record, saved_fund_file)
+    record.morph(:amount_estimated_eu_funding, amount_estimated_eu_funding) if amount_estimated_eu_funding
 
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
 
@@ -704,7 +703,7 @@ end|
       amount_fields.each do |amount_field|
         if !amount_field.to_s[/euro/]
           amount_in_non_euros = record.send(amount_field)
-  
+
           if amount_in_non_euros && amount_in_non_euros != 0
             amount_in_euros = amount_in_non_euros / one_euro_equals_x
             record.morph("#{amount_field}_in_euro", amount_in_euros)
@@ -715,7 +714,7 @@ end|
 
     record
   end
-  
+
   def get_fx_rate currency
     @fx_rates[currency]
   end
@@ -729,7 +728,7 @@ end|
         bad_mappings << original
       end
     end
-    
+
     unless bad_mappings.empty?
       raise "mappings: #{bad_mappings.join(", ")}\nnot found in: #{row.headers.join(", ")}"
     end
@@ -760,7 +759,7 @@ end|
 
     begin
       raw_records = FasterCSV.new csv, :headers => true
-    rescue Exception => e      
+    rescue Exception => e
       log_exception saved_fund_file, e
       return nil
     end
@@ -795,7 +794,7 @@ end|
       end
       return nil
     end
-    
+
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
     all_amounts_sum = records.collect do |record|
       amount_fields.collect do |amount_field|
@@ -806,7 +805,7 @@ end|
 
     puts "all_amounts_sum: #{all_amounts_sum}"
 
-    if all_amounts_sum == 0 
+    if all_amounts_sum == 0
       unless ['de_saarland_esf.csv','be_projets_axe1_esf.xls'].include?(name)
         log_error(saved_fund_file, "all amounts are zero for all items in this file")
         return nil
@@ -819,7 +818,7 @@ end|
   def convert_value value
     unless value.blank?
       value = value.gsub(/(\d)\s+(\d)/, '\1\2')
-      
+
       if value[/^([^\d]+)\d/]
         value = value.sub($1,'')
       end
