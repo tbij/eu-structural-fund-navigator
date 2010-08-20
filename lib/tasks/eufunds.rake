@@ -25,7 +25,15 @@ namespace :eufunds do
   desc "reindexes fund items in solr"
   task :reindex => :environment do
     puts "reindexing fund items in solr ..."
-    FundItem.reindex
+    begin
+      FundItem.reindex
+    rescue Exception => e
+      if e.to_s == "undefined method `closed?' for nil:NilClass"
+        raise 'cannot index as solr is not started - run: rake sunspot:solr:start'
+      else
+        raise e
+      end
+    end
     puts "reindexing finished"
   end
 
@@ -73,7 +81,7 @@ namespace :eufunds do
     File.open(RAILS_ROOT + '/files_with_unknown_sub_program.txt', 'w') {|f| f.write text.join("\n")}
   end
 
-  desc "bad mapping report"  
+  desc "bad mapping report"
   task :bad_mapping => :environment do
     f = FundFile.all.select {|x| !x.error.blank? && x.error[/mappings/] }
     text = f.collect {|x| lines = x.error.split("\n") ; [x.country, x.region, x.parsed_data_file, lines[1], lines[2]].join("\t") }.join("\n")
