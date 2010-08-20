@@ -1,7 +1,7 @@
-require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
+  require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 describe DataLoader do
-  
+
   before :each do
     @loader = DataLoader.new
     @loader.stub!(:load_fx_rates)
@@ -14,13 +14,19 @@ describe DataLoader do
     @sub_program = 'Media'
     @original_file = 'original_file_name'
     @direct_uri = 'http://example.com/'
+    @operational_program = "Operational Programme 'Learning Environments'"
+    @op_name = "Pon Istruzione FESR - Ambienti per l'apprendimento, All Priorities"
+    @co_financing_rate = '50.00%'
 
     @fund_file = mock('fund_file',
         :parsed_data_file => @data_file,
-        :country_or_countries => @country,
+        :country => @country,
         :level => 'national',
         :region => @region,
         :program => @program,
+        :operational_program => @operational_program,
+        :op_name => @op_name,
+        :co_financing_rate => @co_financing_rate,
         :sub_program_information => @sub_program,
         :original_file_name => @original_file,
         :direct_link_to_pdf => @direct_uri,
@@ -33,23 +39,23 @@ describe DataLoader do
         :next_update => ''
         )
     @saved_fund_file_id = 'example_id'
-    @saved_fund_file = mock('saved_fund_file', :id => @saved_fund_file_id, :error => nil, :currency => 'EUR', :type => 'NationalFundFile', :country => 'POLAND')
+    @saved_fund_file = mock('saved_fund_file', :id => @saved_fund_file_id, :error => nil, :currency => 'EUR', :type => 'NationalFundFile', :country => 'POLAND', :co_financing_rate => '25.00%')
     @loader.stub!(:cmd)
   end
-  
+
   describe 'when loading database' do
     it 'should pick files with data' do
-      @loader.with_data([@fund_file]).should == [@fund_file]      
+      @loader.with_data([@fund_file]).should == [@fund_file]
     end
     it 'should ignore files without data' do
       fund_file = mock('fund_file', :parsed_data_file => nil)
-      @loader.with_data([fund_file]).should be_empty      
+      @loader.with_data([fund_file]).should be_empty
     end
     it 'should save fund file' do
       fund_file_model = mock('FundFileClass')
       country_model = mock('CountryClass')
       fund_file_country_model = mock('FundFileCountryClass')
-      
+
       @loader.should_receive(:fund_file_model).with(@fund_file).and_return fund_file_model
       @loader.should_receive(:country_model).and_return country_model
       @loader.should_receive(:fund_file_country_model).and_return fund_file_country_model
@@ -60,29 +66,31 @@ describe DataLoader do
       attributes = {
         :region => @region,
         :program => @program,
-        :sub_program => @sub_program,
+        :sub_program_information => @sub_program,
         :original_file_name => @original_file,
         :parsed_data_file => @data_file,
         :direct_link => @direct_uri,
-        :last_updated=>"", 
+        :last_updated=>"",
         :currency=>"EUR",
-        :next_update=>"", 
-        :agency=>"",
-        :uri_to_landing_page=>"", 
-        :max_percent_funded_by_eu_funds=>"", 
-        :min_percent_funded_by_eu_funds=>""        
+        :next_update=>"",
+        :uri_to_landing_page=>"",
+        :max_percent_funded_by_eu_funds=>"",
+        :min_percent_funded_by_eu_funds=>"",
+        :co_financing_rate=> 0.5,
+        :operational_program => @operational_program,
+        :op_name => @op_name
       }
 
       fund_file_country_attributes = {
         :country_id => country_obj.id,
         :fund_file_id => fund_file_obj.id
-      }      
+      }
       country_model.should_receive(:find_or_create_by_name).with(@country).and_return country_obj
 
       fund_file_model.should_receive(:create).with(attributes).and_return(fund_file_obj)
-      
+
       fund_file_country_model.should_receive(:create).with(fund_file_country_attributes).and_return(country_fund_file_obj)
-      
+
       @loader.save_fund_file(@fund_file).should == fund_file_obj
     end
 
@@ -91,7 +99,7 @@ describe DataLoader do
       first_fund = mock('first_fund', :parsed_data_file => 'parsed_data_file')
       fund_files = [ first_fund ]
       @loader.should_receive(:migrate_database)
-      @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files      
+      @loader.should_receive(:load_fund_files).with(file_name).and_return fund_files
       @loader.should_receive(:with_data).with(fund_files).and_return fund_files
       @loader.should_receive(:populate_database).with(fund_files, fund_files)
       @loader.load_database file_name, 'x'
@@ -117,7 +125,7 @@ describe DataLoader do
       @loader.reset_database fields
     end
 
-    it 'should migrate db' do      
+    it 'should migrate db' do
       @loader.should_receive(:cmd).with(%Q|rake db:migrate RAILS_ENV=test --trace|)
       @loader.should_receive(:cmd).with(%Q|rake db:reset RAILS_ENV=test --trace|)
       @loader.should_receive(:cmd).with(%Q|rm spec/controllers/*_controller_spec.rb|)
@@ -125,7 +133,7 @@ describe DataLoader do
       @loader.should_receive(:add_associations)
       @loader.migrate_database
     end
-    
+
     it 'should load fund file records in db' do
       fund_file = mock('fund_file')
       fund_file2 = mock('fund_file2')
@@ -142,24 +150,24 @@ describe DataLoader do
       @loader.should_receive(:save_fund_file).with(@fund_file).and_return @saved_fund_file
       @loader.should_receive(:save_fund_file).with(fund_file).and_return saved_fund_file
       @loader.should_receive(:save_fund_file).with(fund_file2).and_return saved_fund_file2
-      
+
       @loader.should_receive(:load_fund_file).with(@fund_file, @saved_fund_file).and_return records
-      
+
       @loader.should_receive(:save_record).with(record, nil, @saved_fund_file)
       @loader.should_receive(:save_record).with(record2, nil, @saved_fund_file)
       @loader.should_receive(:save_record).with(record3, nil, @saved_fund_file)
       @loader.populate_database(fund_files, fund_files_with_data)
     end
-    
+
     it 'should save record' do
       morph_attributes = {:x => 'y', :beneficiary => 'Acme', :currency => 'currency'}
       record = mock('record', :morph_attributes => morph_attributes, :beneficiary => 'Acme')
       model = mock('FundItemClass')
       @loader.should_receive(:record_model).and_return model
-      model.should_receive(:create).with(morph_attributes).and_return mock('item') 
+      model.should_receive(:create).with(morph_attributes).and_return mock('item')
       @loader.save_record record
     end
-    
+
     it 'should prevent saving record if beneficiary and project title missing' do
       record = mock('record')
       lambda { @loader.save_record record }.should raise_exception
@@ -187,36 +195,36 @@ describe DataLoader do
       IO.should_receive(:read).with(file_name).and_return pl_csv
       @loader.csv_from_file file_name
     end
-    
+
     it 'should raise exception if not a csv or xls file' do
       name = 'pl_in_progress_erdf.doc'
       file_name = RAILS_ROOT+'/DATA/pl/'+name
       File.should_receive(:exist?).with(file_name).and_return true
-      lambda { @loader.csv_from_file(file_name) }.should raise_exception      
+      lambda { @loader.csv_from_file(file_name) }.should raise_exception
     end
   end
 
   it 'should load CSV' do
     fund_file = fund_files.first
     fund_file.class.name.should == 'Morph::FundFileProxy'
-    fund_file.country_or_countries.should == 'POLAND'
+    fund_file.country.should == 'POLAND'
     fund_file.region.should == 'All regions'
     fund_file.program.should == 'ERDF'
     fund_file.parsed_data_file.should == 'pl_in_progress_erdf.csv'
     fund_file.original_file_name.should == 'Lista_beneficjentow_FE_zakonczone_030110.xls'
   end
-  
+
   it 'should identify fields from fund_files' do
     files = fund_files
     field_names = @loader.field_names(files.first)
-    field_names.first.should == [:currency, "EUR"] 
-    field_names.second.should == [:beneficiary, "Nazwa beneficjenta"] 
+    field_names.first.should == [:currency, "EUR"]
+    field_names.second.should == [:beneficiary, "Nazwa beneficjenta"]
     field_names.third.should == [:project_title, "Tytuł projektu"]
     field_names.last.should == [:program_name, "Program Operacyjny"]
   end
 
   describe 'when parsed data file not present' do
-    it 'should return nil for load_fund_file' do  
+    it 'should return nil for load_fund_file' do
       fund_file = mock(:parsed_data_file => '')
       @loader.should_not_receive(:csv_from_file)
       records = @loader.load_fund_file fund_file, @saved_fund_file
@@ -244,17 +252,17 @@ describe DataLoader do
       record.beneficiary.should == '" Enter "Ośrodek Edukacyjno - Szkoleniowy  Barbara Wolska'
       record.project_title.should == 'Szansa 50+'
       record.program_name.should == 'Program Operacyjny Kapitał Ludzki'
-  
+
       record = records.second
       record.fund_file_id.should == @saved_fund_file_id
       record.beneficiary.should == '"ARBOS" Irena Słabolepsza'
       record.project_title.should == 'Rozwój firmy ARBOS poprzez zakup rębaka do drewna'
       record.program_name.should == 'Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013'
     end
-    
+
     it 'should destroy old migrations' do
       lines = @loader.destroy_migration.split("\n")
-      lines[0].should == %Q|./script/destroy scaffold_resource fund_file_country|      
+      lines[0].should == %Q|./script/destroy scaffold_resource fund_file_country|
       lines[1].should == %Q|./script/destroy scaffold_resource country|
       lines[2].should == %Q|./script/destroy scaffold_resource fund_item|
       lines[3].should == %Q|./script/destroy scaffold_resource fund_file|
@@ -267,7 +275,8 @@ describe DataLoader do
 
     it 'should create fund_file_migration' do
       lines = @loader.fund_file_migration.split("\n")
-      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string agency:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string|
+      # lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string program:string sub_program:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string|
+      lines[0].should == %Q|./script/generate scaffold_resource fund_file type:string error:text currency:string region:string program:string operational_program:string op_name:string co_financing_rate:float sub_program_information:string original_file_name:string parsed_data_file:string direct_link:string uri_to_landing_page:string max_percent_funded_by_eu_funds:string min_percent_funded_by_eu_funds:string last_updated:string next_update:string|
       lines[1].should == %Q|./script/generate scaffold_resource fund_file_country country_id:integer fund_file_id:integer|
     end
 
@@ -284,10 +293,10 @@ describe DataLoader do
 
     @loader.convert_value('471,408.00 �').should == 471408
 
-    @loader.convert_value('€70.000,00').should == 70000 
+    @loader.convert_value('€70.000,00').should == 70000
     @loader.convert_value('-').should == nil
     @loader.convert_value(' €44.959,74').should == 44959
-    
+
     @loader.convert_value('2.000 €').should == 2000
     @loader.convert_value('5.100.000 €').should == 5100000
     @loader.convert_value('8.661.908,61 €').should == 8661908
@@ -303,11 +312,11 @@ describe DataLoader do
 
     @loader.convert_value('EUR 5,100,000').should == 5100000
     @loader.convert_value('EUR 8,661,908.61').should == 8661908
-    
+
     @loader.convert_value('79200.0').should == 79200
     @loader.convert_value('463706.8').should == 463706
     @loader.convert_value('5356931.54').should == 5356931
-    
+
     @loader.convert_value('54 429.60').should == 54429
     @loader.convert_value('54  429.60').should == 54429
   end
@@ -324,7 +333,7 @@ describe DataLoader do
 """ARBOS"" Irena Słabolepsza",Rozwój firmy ARBOS poprzez zakup rębaka do drewna,Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013,Działanie 1.1. Rozwój mikroprzedsiębiorstw,Schemat I: Projekty inwestycyjne,48800.0,21000.0,2009,2009
 |
   end
-  
+
   def master_csv
 %Q|Country/Countries,Level,Region,Assigned to,Excel/PDF,Down-loaded,Scrape Needed,Priority,"Data
 available
@@ -339,7 +348,7 @@ for
 available
 for2010",Program,"Sub-program
 information",Parsed data file,Original file name,Currency Field,Beneficiary Field,Project Title Field,Program Name Field,Amount Allocated Field (EU Funds),Amount Allocated (All funds EU/Nation/Region),Amount Paid Field,Description Field,Year Field,Date Field,Start Year Field,,Direct link to PDF,"Direct link to
-Excel","Direct Link to 
+Excel","Direct Link to
 HTML",Direct link to Doc,,Last Updated,Next update ,Explanatory Notes,Waiting for response,Contact,Uri to landing page,Contact
 POLAND,national,All regions,,Excel,Done,No,Tier 1,,,,,ERDF,Projects in Progress,pl_in_progress_erdf.csv,Lista_beneficjentow_FE_zakonczone_030110.xls,EUR,Nazwa beneficjenta,Tytuł projektu,Program Operacyjny,,,,,,,,,http://www.mrr.gov.pl/aktualnosci/fundusze_europejskie_2007_2013/Documents/Lista_beneficjentow_FE_030110.rar
 |
