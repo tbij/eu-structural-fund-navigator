@@ -839,7 +839,7 @@ end|
         value = value.sub($1,'')
       end
       case value.strip
-      when /^((\d|\.)*\,\d\d)( |$)/
+      when /^((\d|\.)*\,\d\d?)( |$)/
         $1.gsub('.','').sub(',','.').to_i
       when /^((\d|\.)*\d\d\d)( |$)/
         $1.gsub('.','').to_i
@@ -847,7 +847,7 @@ end|
         $1.gsub(',','').to_i
       when /^((\d|\,)*\d\d\d)( |$)/
         $1.gsub(',','').to_i
-      when /^((\d|\s| )*\,\d\d)( |$)/
+      when /^((\d|\s| )*\,\d\d?)( |$)/
         $1.gsub(/\s/,'').sub(',','.').to_i
       when /^((\d|\s| )*)( |$)/
         $1.gsub(/\s/,'').to_i

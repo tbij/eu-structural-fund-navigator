@@ -366,6 +366,7 @@ describe DataLoader do
     @loader.convert_value('€70.000,00').should == 70000
     @loader.convert_value('-').should == nil
     @loader.convert_value(' €44.959,74').should == 44959
+    @loader.convert_value('44.959,7').should == 44959
 
     @loader.convert_value('2.000 €').should == 2000
     @loader.convert_value('5.100.000 €').should == 5100000
@@ -376,6 +377,7 @@ describe DataLoader do
     @loader.convert_value('5,100,000 €').should == 5100000
     @loader.convert_value('8,661,908.61 €').should == 8661908
     @loader.convert_value('908.61 €').should == 908
+    @loader.convert_value('908.6').should == 908
 
     @loader.convert_value('EUR 5.100.000').should == 5100000
     @loader.convert_value('EUR 8.661.908,61').should == 8661908
