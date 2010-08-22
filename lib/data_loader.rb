@@ -702,7 +702,7 @@ end|
 
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
 
-    if currency == 'EUR'
+    if currency == 'EUR' || saved_fund_file.currency == 'EUR'
       amount_fields.each do |amount_field|
         if !amount_field.to_s[/euro/]
           amount = record.send(amount_field)
