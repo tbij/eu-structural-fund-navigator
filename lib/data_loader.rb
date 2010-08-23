@@ -841,8 +841,12 @@ end|
       case value.strip
       when /^((\d|\.)*\,\d\d?)( |$)/
         $1.gsub('.','').sub(',','.').to_i
-      when /^((\d|\.)*\d\d\d)( |$)/
+      when /^((\d)*\d\d\d\d\.\d\d\d)( |$)/
+        $1.to_i
+      when /^((\d|\.)*\.\d\d\d)( |$)/
         $1.gsub('.','').to_i
+      when /^((\d|\.)*\d\d\d\d)( |$)/
+        $1.to_i
       when /^((\d|\,)*\.\d\d?)( |$)/
         $1.gsub(',','').to_i
       when /^((\d|\,)*\d\d\d)( |$)/

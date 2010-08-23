@@ -393,6 +393,10 @@ describe DataLoader do
     @loader.convert_value('54  429.60').should == 54429
 
     @loader.convert_value('6027826613.92').should == 6027826613
+    @loader.convert_value('56894.6666666667').should == 56894
+    @loader.convert_value('602877.484426803').should == 602877
+    @loader.convert_value('602877.484').should == 602877
+    @loader.convert_value('877.484').should == 877484
   end
 
   def fund_files
