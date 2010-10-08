@@ -14,7 +14,7 @@ class DataLoader
   def get_fields file_name
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
-    fields       = [:fund_file_id] + attributes.select{|a| a.to_s[/_field$/]}
+    fields       = [:fund_file_id, :normalized_beneficiary] + attributes.select{|a| a.to_s[/_field$/]}
     fields.collect do |field|
       field = field.to_s.sub(/_field$/,'')
       if field[/^amount_/]
@@ -22,7 +22,7 @@ class DataLoader
       else
         field.to_sym
       end
-    end.flatten + [:amount_estimated_eu_funding, :amount_estimated_eu_funding_in_euro]
+    end.flatten + [:amount_estimated_eu_funding, :amount_estimated_eu_funding_in_euro, :category, :sector_code, :parent_company_or_owner, :trade_description, :ft_category]
   end
 
   def setup_database file_name
@@ -439,6 +439,10 @@ end|
     end
   end
 
+  def not_empty? symbol, record
+    attribute_present?(symbol, record) && (record.send(symbol) >= 0)
+  end
+
   def not_zero? symbol, record
     attribute_present?(symbol, record) && (record.send(symbol) > 0)
   end
@@ -647,7 +651,7 @@ end|
   end
 
   def calculate_amount_estimated_eu_funding record, saved_fund_file
-    if not_zero?(:amount_allocated_eu_funds, record)
+    if not_empty?(:amount_allocated_eu_funds, record)
       record.amount_allocated_eu_funds
 
     elsif saved_fund_file && saved_fund_file.co_financing_rate
@@ -861,7 +865,7 @@ end|
 
   def default_currency country
     case country
-      when /(AUSTRIA|BELGIUM|CYPRUS|FINLAND|FRANCE|GERMANY|GREECE|IRELAND|ITALY|LUXEMBOURG|MALTA|NETHERLANDS|PORTUGAL|SLOVAKIA|SLOVENIA|SPAIN)/
+      when /(AUSTRIA|BELGIUM|CYPRUS|FINLAND|FRANCE|GERMANY|GREECE|IRELAND|ITALY|LUXEMBOURG|MALTA|NETHERLANDS|POLAND|PORTUGAL|SLOVAKIA|SLOVENIA|SPAIN)/
         'EUR'
       when 'BULGARIA'
         'BGN'
@@ -877,8 +881,6 @@ end|
         'LVL'
       when 'LITHUANIA'
         'LTL'
-      when 'POLAND'
-        'PLN'
       when 'ROMANIA'
         'RON'
       when 'SWEDEN'
