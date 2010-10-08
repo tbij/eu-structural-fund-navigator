@@ -101,9 +101,9 @@ describe DataLoader do
               end
 
               describe 'and "amount allocated eu funds" is 0' do
-                it 'should return the co-financing rate multiplied by the "amount paid"' do
+                it 'should return zero' do
                   @record.stub!(:amount_allocated_eu_funds).and_return 0
-                  check_amount 1600 * @co_financing_rate
+                  check_amount 0 # not 1600 * @co_financing_rate
                 end
               end
             end
