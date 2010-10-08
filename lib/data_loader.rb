@@ -521,6 +521,16 @@ end|
     fx_rates
   end
 
+  def load_normalized_beneficiaries file_name
+    csv = IO.read(file_name)
+    fund_files = Morph.from_csv(csv, 'NormalizedBeneficiary')
+  end
+
+  def load_beneficiary_classification file_name
+    csv = IO.read(file_name)
+    fund_files = Morph.from_csv(csv, 'BeneficiaryClassification')
+  end
+
   def load_fund_files file_name
     csv = IO.read(file_name)
     csv.sub!('Country/Countries','Country')

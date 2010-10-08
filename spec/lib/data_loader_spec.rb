@@ -274,7 +274,7 @@ describe DataLoader do
     end
   end
 
-  it 'should load CSV' do
+  it 'should load master CSV' do
     fund_file = fund_files.first
     fund_file.class.name.should == 'Morph::FundFileProxy'
     fund_file.country.should == 'POLAND'
@@ -282,6 +282,24 @@ describe DataLoader do
     fund_file.program.should == 'ERDF'
     fund_file.parsed_data_file.should == 'pl_in_progress_erdf.csv'
     fund_file.original_file_name.should == 'Lista_beneficjentow_FE_zakonczone_030110.xls'
+  end
+
+  it 'should load beneficiary_classification CSV' do
+    classification = beneficiary_classification.first
+    classification.class.name.should == 'Morph::BeneficiaryClassification'
+    classification.beneficiary.should == 'A4E Ltd'
+    classification.category.should == 'Company'
+    classification.sector_code.should == '9111 - Activities of business and employers organisations'
+    classification.parent_company_or_owner.should == 'A4E'
+    classification.trade_description.should == 'Welfare to Work'
+    classification.ft_category.should == 'Welfare to work'
+  end
+
+  it 'should load normalized_beneficiaries CSV' do
+    normalized = normalized_beneficiaries.first
+    normalized.class.name.should == 'Morph::NormalizedBeneficiary'
+    normalized.beneficiary.should == 'IBM Global Services Delivery Centre Polska Sp. z o.o.'
+    normalized.normalized_beneficiary.should == 'IBM'
   end
 
   it 'should identify fields from fund_files' do
@@ -399,8 +417,20 @@ describe DataLoader do
     @loader.convert_value('877.484').should == 877484
   end
 
+  def beneficiary_classification
+    beneficiary_classification = "#{RAILS_ROOT}/DATA/beneficiary_classification.csv"
+    IO.should_receive(:read).with(beneficiary_classification).and_return beneficiary_classification_csv
+    @loader.load_beneficiary_classification(beneficiary_classification)
+  end
+
+  def normalized_beneficiaries
+    normalized_beneficiaries = "#{RAILS_ROOT}/DATA/normalized_beneficiaries.csv"
+    IO.should_receive(:read).with(normalized_beneficiaries).and_return normalized_beneficiaries_csv
+    @loader.load_normalized_beneficiaries(normalized_beneficiaries)
+  end
+
   def fund_files
-    file_name = RAILS_ROOT+'/DATA/master.csv'
+    file_name = "#{RAILS_ROOT}/DATA/master.csv"
     IO.should_receive(:read).with(file_name).and_return master_csv
     fund_files = @loader.load_fund_files file_name
   end
@@ -410,6 +440,16 @@ describe DataLoader do
 """ Enter ""Ośrodek Edukacyjno - Szkoleniowy  Barbara Wolska",Szansa 50+,Program Operacyjny Kapitał Ludzki,7.2. Przeciwdziałanie wykluczeniu i wzmocnienie sektora ekonomii społecznej,7.2.1 Aktywizacja zawodowa i społeczna osób zagrożonych wykluczeniem społecznym,175864.0,174166.93,2008,2009
 """ARBOS"" Irena Słabolepsza",Rozwój firmy ARBOS poprzez zakup rębaka do drewna,Regionalny Program Operacyjny Województwa Wielkopolskiego na lata 2007 - 2013,Działanie 1.1. Rozwój mikroprzedsiębiorstw,Schemat I: Projekty inwestycyjne,48800.0,21000.0,2009,2009
 |
+  end
+
+  def beneficiary_classification_csv
+%Q|beneficiary,category,sector_code,parent_company_or_owner,trade_description,ft_category
+A4E Ltd,Company,9111 - Activities of business and employers organisations,A4E,Welfare to Work,Welfare to work|
+  end
+
+  def normalized_beneficiaries_csv
+%Q|beneficiary,normalized_beneficiary
+IBM Global Services Delivery Centre Polska Sp. z o.o.,IBM|
   end
 
   def master_csv
