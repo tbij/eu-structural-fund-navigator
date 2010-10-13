@@ -50,7 +50,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def search    
+  def search
     if query = params['q']
       region = params[:fund_region]
       country = params[:fund_country]
@@ -60,13 +60,13 @@ class ApplicationController < ActionController::Base
       result = search.do_search(query)
       @countries = result.facet(:fund_country).rows
       @regions = result.facet(:fund_region).rows
-      
+
       @results = []
       result.each_hit_with_result {|hit, item| @results << item}
       @total_results = result.total
       @current_page = result.hits.current_page
       @total_pages = result.hits.total_pages
-      
+
       @query = query
       if params['f'] == 'csv'
         output_csv(@results)
@@ -79,7 +79,7 @@ class ApplicationController < ActionController::Base
   end
 
   def dashboard
-    @top_priority = %w[FRANCE GERMANY GREECE ITALY ROMANIA SPAIN UK] # LATVIA BULGARIA  
+    @top_priority = %w[FRANCE GERMANY GREECE ITALY ROMANIA SPAIN UK] # LATVIA BULGARIA
     countries = Country.find(:all, :include => :fund_files)
 
     top_countries = countries.select {|x| @top_priority.include?(x.name) }
@@ -89,7 +89,7 @@ class ApplicationController < ActionController::Base
     @countries_by_name = countries.group_by(&:name)
     @top_countries_by_name = top_countries.group_by(&:name)
     @other_countries_by_name = other_countries.group_by(&:name)
-    
+
     @loaded_files_by_country = Hash.new {|h,v| h[v] = 0}
     @items_by_country = Hash.new {|h,v| h[v] = 0}
     countries.each do |country|
@@ -121,13 +121,13 @@ class ApplicationController < ActionController::Base
       hash[name] = @items_by_country[name] if @top_priority.include?(name)
       hash
     end
-    
+
     @top_items_count = @top_items_by_country.values.map(&:to_i).sum
     @top_total_loaded_files = @top_priority.collect{|name| @loaded_files_by_country[name]}.flatten.sum
     @top_total_files =        @top_priority.collect{|name| @files_by_country[name] || 0}.flatten.sum
     @top_total_file_errors =  @top_priority.collect{|name| @file_errors_by_country[name] || 0}.flatten.sum
     @top_error_colour = (@top_total_file_errors == 0) ? 'darkgrey' : 'darkred'
-    
+
     @top_total_percent_loaded = @top_priority.collect {|name| @percent_loaded_by_country[name].to_f }.sum / @top_priority.size
     @top_total_percent_errors = @top_priority.collect {|name| @percent_errors_by_country[name].to_f }.sum / @top_priority.size
 
@@ -148,15 +148,15 @@ class ApplicationController < ActionController::Base
 
     @other_total_percent_loaded = @other_countries.collect {|name| @percent_loaded_by_country[name].to_f }.sum / other_priority_size
     @other_total_percent_errors = @other_countries.collect {|name| @percent_errors_by_country[name].to_f }.sum / other_priority_size
-    
+
     transnational = countries.select {|c| c.transnational_fund_files_count > 0}
-    @transnational_groups = transnational.map(&:name).sort    
-    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.transnational_fund_files_count); h}    
+    @transnational_groups = transnational.map(&:name).sort
+    @transnational_by_country = transnational.inject({}) {|h,c| h[c.name] = (c.transnational_fund_files_count); h}
     @transnational_total_files = @transnational_groups.collect{|name| @transnational_by_country[name] || 0}.flatten.sum
 
     crossborder = countries.select {|c| c.crossborder_fund_files_count > 0}
-    @crossborder_groups = crossborder.map(&:name).sort    
-    @crossborder_by_country = crossborder.inject({}) {|h,c| h[c.name] = (c.crossborder_fund_files_count); h}    
+    @crossborder_groups = crossborder.map(&:name).sort
+    @crossborder_by_country = crossborder.inject({}) {|h,c| h[c.name] = (c.crossborder_fund_files_count); h}
     @crossborder_total_files = @crossborder_groups.collect{|name| @crossborder_by_country[name] || 0}.flatten.sum
   end
 
@@ -166,14 +166,14 @@ class ApplicationController < ActionController::Base
     @country_name = name.split.map(&:capitalize).join(' ')
     @files_with_errors = country.fund_files.compact.select(&:error)
   end
-  
+
   def create_csv fund_files, country, tmpfile
     include_header = true
 
     fund_files.each do |fund_file|
       ids = FundItem.find_by_sql('select id from fund_items where fund_file_id = "' + fund_file.id.to_s + '"').map(&:id)
 
-      ids.in_groups_of(1000).each do |id_group|        
+      ids.in_groups_of(1000).each do |id_group|
         id_group = id_group.compact
         items = FundItem.find(:all, :conditions => "id in (#{id_group.join(',')})")
         csv_string = get_csv(items, fund_files, country, include_header)
@@ -236,8 +236,14 @@ class ApplicationController < ActionController::Base
       :sub_region_or_county,
       :district,
       :beneficiary,
+      :normalized_beneficiary,
       :subcontractor,
       :project_title,
+      :classification_category,
+      :sector_code,
+      :parent_company_or_owner,
+      :trade_description,
+      :ft_category,
       :description,
       :operational_program_name,
 
@@ -288,13 +294,13 @@ class ApplicationController < ActionController::Base
       :parsed_data_file,
       :original_file_name,
       :direct_link,
-      :uri_to_landing_page    
+      :uri_to_landing_page
     ]
     # item_fields.delete_if do |field|
       # non_blank_count = items.collect { |item| item.send(field) }.select { |value| !value.blank? }.size
       # delete = (non_blank_count == 0)
     # end
-    
+
     all_fields = (fund_fields + [:program] + item_fields + fund_fields_suffix).map { |field| FundItem.human_attribute_name(field) }
 
     output = FasterCSV.generate do |csv|
@@ -307,7 +313,7 @@ class ApplicationController < ActionController::Base
       end
     end
   end
-    
+
   def output_csv items, fund_files=nil, country=nil
     csv_string = get_csv(items, fund_files, country, true)
     send_data csv_string, :type => "text/plain", :filename=>"items.csv", :disposition => 'attachment'
