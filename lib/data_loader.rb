@@ -22,7 +22,7 @@ class DataLoader
       else
         field.to_sym
       end
-    end.flatten + [:amount_estimated_eu_funding, :amount_estimated_eu_funding_in_euro, :category, :sector_code, :parent_company_or_owner, :trade_description, :ft_category]
+    end.flatten + [:amount_estimated_eu_funding, :amount_estimated_eu_funding_in_euro, :classification_category, :sector_code, :parent_company_or_owner, :trade_description, :ft_category]
   end
 
   def setup_database file_name
@@ -521,14 +521,22 @@ end|
     fx_rates
   end
 
-  def load_normalized_beneficiaries file_name
-    csv = IO.read(file_name)
-    fund_files = Morph.from_csv(csv, 'NormalizedBeneficiary')
+  def load_normalized_beneficiaries file_name="#{RAILS_ROOT}/DATA/normalized_beneficiaries.csv"
+    unless @normalized_beneficiaries
+      csv = IO.read(file_name)
+      normalized = Morph.from_csv(csv, 'NormalizedBeneficiary')
+      @normalized_beneficiaries = normalized.group_by(&:beneficiary)
+    end
+    @normalized_beneficiaries
   end
 
-  def load_beneficiary_classification file_name
-    csv = IO.read(file_name)
-    fund_files = Morph.from_csv(csv, 'BeneficiaryClassification')
+  def load_beneficiary_classification file_name="#{RAILS_ROOT}/DATA/beneficiary_classification.csv"
+    unless @beneficiary_classification
+      csv = IO.read(file_name)
+      classification = @beneficiary_classification = Morph.from_csv(csv, 'BeneficiaryClassification')
+      @beneficiary_classification = classification.group_by(&:beneficiary)
+    end
+    @beneficiary_classification
   end
 
   def load_fund_files file_name
@@ -849,7 +857,7 @@ end|
     end.sum
   end
 
-  def total_amount_greater_than_zero? records
+  def total_amount_greater_than_zero? records, name
     all_amounts_sum = all_amounts_sum(records)
     puts "all_amounts_sum: #{all_amounts_sum}"
 
@@ -875,11 +883,41 @@ end|
     records = load_records(raw_records, field_names, saved_fund_file)
     return nil if records.nil?
 
-    if total_amount_greater_than_zero?(records)
+    if total_amount_greater_than_zero?(records, name)
+      records = normalize_beneficiaries(records)
+      records = classify_beneficiaries(records)
       records
     else
       nil
     end
+  end
+
+  def classify_beneficiaries records
+    if classification = load_beneficiary_classification
+      records.each do |record|
+        if (record.respond_to?(:normalized_beneficiary) && match = classification[record.normalized_beneficiary]) || (match = classification[record.beneficiary])
+          match = match.first
+          record.classification_category = match.category
+          record.sector_code = match.sector_code
+          record.parent_company_or_owner = match.parent_company_or_owner
+          record.trade_description = match.trade_description
+          record.ft_category = match.ft_category
+        end
+      end
+    end
+    records
+  end
+
+  def normalize_beneficiaries records
+    if normalized = load_normalized_beneficiaries
+      records.each do |record|
+        if match = normalized[record.beneficiary]
+          match = match.first
+          record.normalized_beneficiary = match.normalized_beneficiary
+        end
+      end
+    end
+    records
   end
 
   def convert_value value

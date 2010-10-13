@@ -114,6 +114,11 @@ describe DataLoader do
   end
 
   describe 'when loading database' do
+    before :each do
+      @loader.stub!(:load_normalized_beneficiaries).and_return {}
+      @loader.stub!(:load_beneficiary_classification).and_return {}
+    end
+
     it 'should pick files with data' do
       @loader.with_data([@fund_file]).should == [@fund_file]
     end
@@ -285,7 +290,7 @@ describe DataLoader do
   end
 
   it 'should load beneficiary_classification CSV' do
-    classification = beneficiary_classification.first
+    classification = beneficiary_classification['A4E Ltd'].first
     classification.class.name.should == 'Morph::BeneficiaryClassification'
     classification.beneficiary.should == 'A4E Ltd'
     classification.category.should == 'Company'
@@ -296,10 +301,12 @@ describe DataLoader do
   end
 
   it 'should load normalized_beneficiaries CSV' do
-    normalized = normalized_beneficiaries.first
-    normalized.class.name.should == 'Morph::NormalizedBeneficiary'
-    normalized.beneficiary.should == 'IBM Global Services Delivery Centre Polska Sp. z o.o.'
-    normalized.normalized_beneficiary.should == 'IBM'
+    normalized = normalized_beneficiaries
+
+    value = normalized['IBM Global Services Delivery Centre Polska Sp. z o.o.'].first
+    value.class.name.should == 'Morph::NormalizedBeneficiary'
+    value.beneficiary.should == 'IBM Global Services Delivery Centre Polska Sp. z o.o.'
+    value.normalized_beneficiary.should == 'IBM'
   end
 
   it 'should identify fields from fund_files' do
@@ -333,6 +340,8 @@ describe DataLoader do
     end
 
     it 'should create a record for each row in fund file' do
+      @loader.should_receive(:load_normalized_beneficiaries).and_return {}
+      @loader.stub!(:load_beneficiary_classification).and_return {}
       records = @loader.load_a_fund_file(@fund_file, @saved_fund_file)
       records.size.should == 2
       record = records.first
@@ -415,6 +424,47 @@ describe DataLoader do
     @loader.convert_value('602877.484426803').should == 602877
     @loader.convert_value('602877.484').should == 602877
     @loader.convert_value('877.484').should == 877484
+  end
+
+  describe 'when asked to normalize beneficiaries' do
+    it 'should add normalized name' do
+      normalized_beneficiaries
+      record = mock('record', :beneficiary => 'IBM Global Services Delivery Centre Polska Sp. z o.o.')
+      records = [record]
+      record.should_receive(:normalized_beneficiary=).with('IBM')
+      @loader.normalize_beneficiaries(records).should == records
+    end
+  end
+
+  describe 'when asked to classify beneficiary' do
+    describe 'and record has a normalized_beneficiary field' do
+      it 'should add classification fields to record' do
+        beneficiary_classification
+        record = mock('record', :normalized_beneficiary => 'A4E Ltd')
+        records = [record]
+        record.should_receive(:classification_category=).with('Company')
+        record.should_receive(:sector_code=).with('9111 - Activities of business and employers organisations')
+        record.should_receive(:parent_company_or_owner=).with('A4E')
+        record.should_receive(:trade_description=).with('Welfare to Work')
+        record.should_receive(:ft_category=).with('Welfare to work')
+
+        @loader.classify_beneficiaries(records).should == records
+      end
+    end
+    describe 'and record does not have a normalized_beneficiary field' do
+      it 'should add classification fields to record' do
+        beneficiary_classification
+        record = mock('record', :beneficiary => 'A4E Ltd')
+        records = [record]
+        record.should_receive(:classification_category=).with('Company')
+        record.should_receive(:sector_code=).with('9111 - Activities of business and employers organisations')
+        record.should_receive(:parent_company_or_owner=).with('A4E')
+        record.should_receive(:trade_description=).with('Welfare to Work')
+        record.should_receive(:ft_category=).with('Welfare to work')
+
+        @loader.classify_beneficiaries(records).should == records
+      end
+    end
   end
 
   def beneficiary_classification
