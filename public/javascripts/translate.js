@@ -6,20 +6,28 @@ function normalize_html(html) {
 
 function initialize() {
   var cells = document.getElementsByTagName('span');
-  
+
   for (var i = 0; i < cells.length; ++i) {
     var item = cells[i];
     if (item.className == "description") {
       var to_language = item.parentNode.className;
 
       if (to_language != 'en') {
-        var id = item.id.replace("description_","");        
+        var id = item.id.replace("description_","");
         var text_length = normalize_html(item.innerHTML).length;
 
         if(text_length > 0) {
           var text = item.innerHTML;
           text = id + " " + text;
-  
+
+          text_length = text.length;
+          var max_length = 360;
+          if(text_length > max_length) {
+            if(to_language == 'bg') {
+              text = text.slice(0,max_length);
+            }
+          }
+
           google.language.translate(text, to_language, "en", function(result) {
             var translation = result.translation;
             if (translation) {
