@@ -71,7 +71,7 @@ class DataLoader
       if force_reload && saved_fund_file
         begin
           saved_fund_file.fund_items.each {|item| item.destroy}
-          records = load_fund_file(fund_file, saved_fund_file)
+          records = load_a_fund_file(fund_file, saved_fund_file)
           if records
             previous_record = nil
             records.each do |record|
@@ -348,7 +348,7 @@ end|
     fund_files.each do |fund_file|
       saved_fund_file = save_fund_file(fund_file)
       if saved_fund_file && files_with_data.include?(fund_file)
-        records = load_fund_file(fund_file, saved_fund_file)
+        records = load_a_fund_file(fund_file, saved_fund_file)
         if records
           save_records records, saved_fund_file
         else
@@ -764,46 +764,58 @@ end|
     end
   end
 
-  def load_fund_file fund_file, saved_fund_file
+  def load_a_fund_file fund_file, saved_fund_file
     name = fund_file.parsed_data_file
     if name.blank?
       puts "parsed data file name is blank"
       return nil
+    else
+      load_a_named_fund_file fund_file, saved_fund_file, name
     end
+  end
+
+  def get_file_path name
     country_code = name[0..1]
     file_name = "#{RAILS_ROOT}/DATA/#{country_code}/#{name}"
-    csv = nil
+  end
+
+  def load_csv_from_file name, saved_fund_file
     begin
+      file_name = get_file_path name
       csv = csv_from_file(file_name)
       csv_file_name = file_name.sub(/\.xls$/,'.csv')
       csv = convert_encoding(csv, csv_file_name) if csv
+      csv
     rescue Exception => e
       log_exception saved_fund_file, e
-      return nil
+      nil
     end
+  end
 
-    if csv.blank?
-      puts "csv is blank"
-      return nil
-    end
-
+  def load_raw_records csv, saved_fund_file
     begin
-      raw_records = FasterCSV.new csv, :headers => true
+      FasterCSV.new(csv, :headers => true)
     rescue Exception => e
       log_exception saved_fund_file, e
-      return nil
+      nil
     end
+  end
 
+  def load_field_names fund_file, saved_fund_file
     field_names = field_names(fund_file)
 
     if field_names.empty?
       log_error saved_fund_file, 'ERROR: no column mappings defined'
-      return nil
+      nil
     elsif field_names.assoc(:beneficiary).nil? && field_names.assoc(:project_title).nil?
       log_error saved_fund_file, "ERROR: no column mapping defined for beneficiary or project title: #{field_names.inspect}"
-      return nil
+      nil
+    else
+      field_names
     end
+  end
 
+  def load_records raw_records, field_names, saved_fund_file
     do_check_mappings = true
     last_row = nil
     records = []
@@ -824,7 +836,10 @@ end|
       end
       return nil
     end
+    records
+  end
 
+  def all_amounts_sum records
     amount_fields = FundRecord.morph_attributes.select {|x| x.to_s[/^amount/]}
     all_amounts_sum = records.collect do |record|
       amount_fields.collect do |amount_field|
@@ -832,17 +847,39 @@ end|
         (amount.nil? || amount.blank?) ? 0 : amount
       end.sum
     end.sum
+  end
 
+  def total_amount_greater_than_zero? records
+    all_amounts_sum = all_amounts_sum(records)
     puts "all_amounts_sum: #{all_amounts_sum}"
 
     if all_amounts_sum == 0
       unless ['de_saarland_esf.csv','be_projets_axe1_esf.xls'].include?(name)
         log_error(saved_fund_file, "all amounts are zero for all items in this file")
-        return nil
+        return false
       end
     end
+    return true
+  end
 
-    records
+  def load_a_named_fund_file fund_file, saved_fund_file, name
+    csv = load_csv_from_file(name, saved_fund_file)
+    return nil if csv.blank?
+
+    raw_records = load_raw_records(csv, saved_fund_file)
+    return nil if raw_records.nil?
+
+    field_names = load_field_names(fund_file, saved_fund_file)
+    return nil if field_names.nil?
+
+    records = load_records(raw_records, field_names, saved_fund_file)
+    return nil if records.nil?
+
+    if total_amount_greater_than_zero?(records)
+      records
+    else
+      nil
+    end
   end
 
   def convert_value value

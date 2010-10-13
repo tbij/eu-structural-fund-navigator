@@ -221,7 +221,7 @@ describe DataLoader do
       @loader.should_receive(:save_fund_file).with(fund_file).and_return saved_fund_file
       @loader.should_receive(:save_fund_file).with(fund_file2).and_return saved_fund_file2
 
-      @loader.should_receive(:load_fund_file).with(@fund_file, @saved_fund_file).and_return records
+      @loader.should_receive(:load_a_fund_file).with(@fund_file, @saved_fund_file).and_return records
 
       @loader.should_receive(:save_record).with(record, nil, @saved_fund_file)
       @loader.should_receive(:save_record).with(record2, nil, @saved_fund_file)
@@ -312,10 +312,10 @@ describe DataLoader do
   end
 
   describe 'when parsed data file not present' do
-    it 'should return nil for load_fund_file' do
+    it 'should return nil for load_a_fund_file' do
       fund_file = mock(:parsed_data_file => '')
       @loader.should_not_receive(:csv_from_file)
-      records = @loader.load_fund_file fund_file, @saved_fund_file
+      records = @loader.load_a_fund_file fund_file, @saved_fund_file
       # records.should be_nil
     end
   end
@@ -333,7 +333,7 @@ describe DataLoader do
     end
 
     it 'should create a record for each row in fund file' do
-      records = @loader.load_fund_file(@fund_file, @saved_fund_file)
+      records = @loader.load_a_fund_file(@fund_file, @saved_fund_file)
       records.size.should == 2
       record = records.first
       record.fund_file_id.should == @saved_fund_file_id

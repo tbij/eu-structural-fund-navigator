@@ -29,14 +29,16 @@ gem 'google-spreadsheet-ruby'
 
 
 group :test do
-  gem 'rspec'
-  gem 'rspec-rails'
+  gem 'rspec', '1.3.1'
+  gem 'rspec-rails', '1.3.3'
   gem 'test-unit', '1.2.3'
   gem 'cucumber'
   gem 'cucumber-rails'
   gem 'database_cleaner'
   # gem 'capybara'
   gem 'webrat'
-  gem 'ZenTest'
+  gem 'autotest'
   gem 'autotest-rails'
+  gem 'autotest-growl'
+  # gem 'ZenTest'
 end
