@@ -20,12 +20,11 @@ function initialize() {
           var text = item.innerHTML;
           text = id + " " + text;
 
-          text_length = text.length;
-          var max_length = 360;
-          if(text_length > max_length) {
-            if(to_language == 'bg') {
-              text = text.slice(0,max_length);
-            }
+          text_length = encodeURI(text).length;
+          var max_encoded_length = 1000;
+
+          if(text_length > max_encoded_length) {
+            text = text.slice(0,350);
           }
 
           google.language.translate(text, to_language, "en", function(result) {
