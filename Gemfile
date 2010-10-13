@@ -39,6 +39,6 @@ group :test do
   gem 'webrat'
   gem 'autotest'
   gem 'autotest-rails'
-  gem 'autotest-growl'
-  # gem 'ZenTest'
+  # gem 'autotest-growl'
+  gem 'ZenTest'
 end
