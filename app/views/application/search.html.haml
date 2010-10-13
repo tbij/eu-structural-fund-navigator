@@ -14,13 +14,13 @@
   - else
     .countries
       .countries1
-        = render :partial => 'facet', :object => @countries.in_groups(4).first, :locals => {:facet_name => :fund_country, :total => @countries.size}  
+        = render :partial => 'facet', :object => @countries.in_groups(4).first, :locals => {:facet_name => :fund_country, :total => @countries.size}
       .countries2
-        = render :partial => 'facet', :object => @countries.in_groups(4)[1], :locals => {:facet_name => :fund_country, :total => @countries.size}  
+        = render :partial => 'facet', :object => @countries.in_groups(4)[1], :locals => {:facet_name => :fund_country, :total => @countries.size}
       .countries3
-        = render :partial => 'facet', :object => @countries.in_groups(4)[2], :locals => {:facet_name => :fund_country, :total => @countries.size}  
+        = render :partial => 'facet', :object => @countries.in_groups(4)[2], :locals => {:facet_name => :fund_country, :total => @countries.size}
       .countries4
-        = render :partial => 'facet', :object => @countries.in_groups(4).last, :locals => {:facet_name => :fund_country, :total => @countries.size}  
+        = render :partial => 'facet', :object => @countries.in_groups(4).last, :locals => {:facet_name => :fund_country, :total => @countries.size}
   - if @countries.size == 1
     .regions
       .regions1
@@ -37,13 +37,13 @@
 - else
   #eu_amount
     %p.eu_amount
-      %span 
+      %span
         A declared
       %span.eu_amount= number_to_currency(@min_eu_amount_in_euros, :unit => "&euro;", :precision => 0)
       %span
         in allocated EU Funds
     %p.eu_amount
-      %span 
+      %span
         An estimated
       %span.eu_amount= number_to_currency(@amount_estimated_eu_funding_in_euro, :unit => "&euro;", :precision => 0)
       %span
@@ -81,6 +81,8 @@
                 Subcontractors:
                 = item.subcontractor
             %td{:class => item.language_code}
+              %span.translation{:id => "translation_#{index}"}
+              %br
               %span.description{:id => "description_#{index}"}
                 - if item.project_title.blank?
                   = h item.description.to_s.strip
@@ -88,8 +90,6 @@
                   = h item.project_title.to_s.strip
                   %br
                   = h item.description.to_s.strip
-              %br
-              %span.translation{:id => "translation_#{index}"}
             %td.amount
               = item.amount_estimated_eu_funding ? "#{number_with_delimiter(item.amount_estimated_eu_funding)} #{h(item.currency)}" : ''
               - if item.currency != 'EUR'
