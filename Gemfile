@@ -37,7 +37,7 @@ group :test do
   gem 'database_cleaner'
   # gem 'capybara'
   gem 'webrat'
-  gem 'autotest'
+  # gem 'autotest'
   gem 'autotest-rails'
   # gem 'autotest-growl'
   gem 'ZenTest'
