@@ -1,5 +1,5 @@
 require 'deprec'
-  
+
 set :application, "eu_funds"
 set :domain, "eufunds.thebureauinvestigates.com"
 set :repository,  "git@github.com:tbij/eu_funds.git"
@@ -14,7 +14,7 @@ set :web_server_type,   :apache     # :apache, :nginx
 set :app_server_type,   :passenger  # :passenger, :mongrel
 set :db_server_type,    :mysql      # :mysql, :postgresql, :sqlite
 
-set :packages_for_project, %w(libxml2 libxml2-dev libxslt1.1 libxslt1-dev) # list of packages to be installed
+set :packages_for_project, %w(libxml2 libxml2-dev libxslt1.1 libxslt1-dev zip) # list of packages to be installed
 set :gems_for_project, %w(nokogiri) # list of gems to be installed
 
 # Update these if you're not running everything on one host.
@@ -32,7 +32,7 @@ namespace :deploy do
   task :restart, :roles => :app, :except => { :no_release => true } do
     top.deprec.app.restart
   end
-  
+
   task :upload_stuff do
     data = File.read("config/database.yml")
     put data, "#{release_path}/config/database.yml", :mode => 0664
@@ -73,7 +73,7 @@ namespace :deploy do
   task :update_data, :roles => :app do
     run "if [ -d #{shared_path}/DATA ]; then cd #{shared_path}/DATA ; git pull ; else cd #{shared_path} ; git clone git@github.com:tbij/DATA.git ; fi"
     run "if [ -d #{current_path}/DATA ]; then echo data_symlinked ; else cd #{current_path} ; ln -s #{shared_path}/DATA DATA ; fi"
-  end  
+  end
 
   task :site_setup, :roles => :app do
     puts 'entering first time only setup...'
@@ -82,7 +82,7 @@ namespace :deploy do
     run "cd #{current_path}; sudo gem install bundler"
 
     set_gem_bin
-    run "cd #{current_path}; #{ENV['GEM_BIN']}/bundle install"    
+    run "cd #{current_path}; #{ENV['GEM_BIN']}/bundle install"
     run "cd #{current_path}; mv .bundle #{shared_path}/.bundle"
     symlink_bundle
 

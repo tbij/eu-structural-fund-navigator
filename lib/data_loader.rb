@@ -11,7 +11,11 @@ end
 
 class DataLoader
 
-  ALL_COUNTRIES_CSV = "#{RAILS_ROOT}/public/all_countries.csv"
+  def self.eufunds_csv
+    EUFUNDS_CSV
+  end
+
+  EUFUNDS_CSV = "#{RAILS_ROOT}/public/eufunds.csv"
 
   def get_fields file_name
     fund_files   = load_fund_files(file_name)
@@ -347,7 +351,7 @@ end|
   end
 
   def populate_database fund_files, files_with_data
-    File.open(ALL_COUNTRIES_CSV, 'w') do |f|
+    File.open(EUFUNDS_CSV, 'w') do |f|
       # Overwrites the file if the file exists. If the file does not exist, creates a new file for writing
     end unless RAILS_ENV == 'test'
 
@@ -365,11 +369,19 @@ end|
         end
       end
     end
+
+    zip_eufunds_csv
+  end
+
+  def zip_eufunds_csv
+    if File.exist?(EUFUNDS_CSV)
+      `zip #{EUFUNDS_CSV}.zip #{EUFUNDS_CSV}`
+    end
   end
 
   def save_to_csv fund_items, saved_fund_file, include_header
     csv = CsvHelper.get_csv(fund_items, [saved_fund_file], include_header)
-    File.open(ALL_COUNTRIES_CSV,'a') do |file|
+    File.open(EUFUNDS_CSV,'a') do |file|
       file.write(csv.strip)
       file.write("\n")
     end

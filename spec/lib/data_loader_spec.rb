@@ -235,6 +235,7 @@ describe DataLoader do
       @loader.should_receive(:save_a_record).with(record2, nil, @saved_fund_file).and_return fund_item1
       @loader.should_receive(:save_a_record).with(record3, nil, @saved_fund_file).and_return fund_item2
       @loader.should_receive(:save_to_csv).with([fund_item, fund_item1, fund_item2], @saved_fund_file, true)
+      @loader.should_receive(:zip_eufunds_csv)
       @loader.populate_database(fund_files, fund_files_with_data)
     end
 

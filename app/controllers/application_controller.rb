@@ -182,6 +182,11 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def eufunds_csv
+    path = "#{DataLoader.eufunds_csv}.zip"
+    send_file path, :type => "text/plain", :filename=>"eufunds.csv.zip", :disposition => 'attachment'
+  end
+
   def to_csv_file
     tmpfile = nil
     datetime = "#{Date.today.to_s}_#{Time.now.to_s(:short)[-5..-1].sub(':','')}"

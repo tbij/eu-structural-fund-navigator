@@ -1,4 +1,5 @@
 ActionController::Routing::Routes.draw do |map|
+
   map.resources :fund_items
 
   map.resources :fund_file_countries
@@ -25,7 +26,7 @@ ActionController::Routing::Routes.draw do |map|
 
   # Sample resource route with sub-resources:
   #   map.resources :products, :has_many => [ :comments, :sales ], :has_one => :seller
-  
+
   # Sample resource route with more complex sub-resources
   #   map.resources :products do |products|
   #     products.resources :comments
@@ -49,6 +50,7 @@ ActionController::Routing::Routes.draw do |map|
   map.search 'search', :controller => 'application', :action => 'search'
   map.translate_and_search 'translate_and_search', :controller => 'application', :action => 'translate_and_search'
 
+  map.eufunds_csv 'eufunds_csv', :controller => "application", :action => 'eufunds_csv'
   # See how all your routes lay out with "rake routes"
 
   # Install the default routes as the lowest priority.
