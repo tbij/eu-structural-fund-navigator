@@ -552,6 +552,19 @@ end|
     fx_rates
   end
 
+  @@converter = Iconv.new('ASCII//TRANSLIT', 'UTF-8')
+
+  def canonical_name name
+    begin
+      name = name.gsub('�','')
+      name.gsub!('','')
+      name.gsub!(' & ',' and ')
+      @@converter.iconv(name).downcase.gsub(/[^a-z0-9 ]/,'').gsub(/\s\s+/,' ').strip
+    rescue
+      name
+    end
+  end
+
   def load_normalized_beneficiaries file_name="#{RAILS_ROOT}/DATA/normalized_beneficiaries.csv"
     unless @normalized_beneficiaries
       csv = IO.read(file_name)
@@ -560,7 +573,7 @@ end|
         n.beneficiary            = n.beneficiary.strip if n.beneficiary
         n.normalized_beneficiary = n.normalized_beneficiary.strip if n.normalized_beneficiary
       end
-      @normalized_beneficiaries = normalized.group_by(&:beneficiary)
+      @normalized_beneficiaries = normalized.group_by {|x| canonical_name(x.beneficiary) }
     end
     @normalized_beneficiaries
   end
@@ -569,6 +582,7 @@ end|
     unless @beneficiary_classification
       csv = IO.read(file_name)
       classification = @beneficiary_classification = Morph.from_csv(csv, 'BeneficiaryClassification')
+      classification.delete_if {|x| x.beneficiary.nil?}
       classification.each do |c|
         c.beneficiary             = c.beneficiary.strip if c.beneficiary
         c.category                = c.category.strip if c.respond_to?(:category) && c.category
@@ -577,7 +591,7 @@ end|
         c.trade_description       = c.trade_description.strip if c.respond_to?(:trade_description) && c.trade_description
         c.ft_category             = c.ft_category.strip if c.respond_to?(:ft_category) && c.ft_category
       end
-      @beneficiary_classification = classification.group_by(&:beneficiary)
+      @beneficiary_classification = classification.group_by {|x| canonical_name(x.beneficiary) }
     end
     @beneficiary_classification
   end
@@ -938,7 +952,7 @@ end|
   def classify_beneficiaries records
     if classification = load_beneficiary_classification
       records.each do |record|
-        if (record.respond_to?(:normalized_beneficiary) && match = classification[record.normalized_beneficiary]) || (match = classification[record.beneficiary])
+        if (record.respond_to?(:normalized_beneficiary) && !record.normalized_beneficiary.blank? && match = classification[canonical_name(record.normalized_beneficiary)]) || (match = classification[canonical_name(record.beneficiary)])
           match = match.first
           record.classification_category = match.category
           record.sector_code = match.sector_code
@@ -954,7 +968,8 @@ end|
   def normalize_beneficiaries records
     if normalized = load_normalized_beneficiaries
       records.each do |record|
-        if match = normalized[record.beneficiary]
+        canonical_name = canonical_name(record.beneficiary)
+        if match = normalized[canonical_name]
           match = match.first
           record.normalized_beneficiary = match.normalized_beneficiary
         end

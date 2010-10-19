@@ -7,17 +7,18 @@
     %meta{ :content=>'text/html; charset=utf-8', 'http-equiv'.to_sym => 'content-type' }
     - if @search_results
       = javascript_include_tag("http://www.google.com/jsapi").sub('.js','')
-      = javascript_include_tag("translate")    
+      = javascript_include_tag("translate")
   %body
     #page
       #header
         %h1#banner EU Funds
         #logos
           #tbij_logo= image_tag '/images/tbij_logo.jpg', :height => '20px'
-          #ft_logo= image_tag '/images/ft_logo.jpg', :height => '13px'        
+          #ft_logo= image_tag '/images/ft_logo.jpg', :height => '13px'
       #content
         = @content_for_layout
       #footer
-        - if @search_results          
+        %p Data Sources | Data Download | Terms and Conditions
+        - if @search_results
           #google_attribution
             Language translation

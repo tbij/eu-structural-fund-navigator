@@ -91,10 +91,21 @@
                   %br
                   = h item.description.to_s.strip
             %td.amount
-              = item.amount_estimated_eu_funding ? "#{number_with_delimiter(item.amount_estimated_eu_funding)} #{h(item.currency)}" : ''
+              - if item.amount_allocated_eu_funds == item.amount_estimated_eu_funding
+                = item.amount_estimated_eu_funding ? "#{number_with_delimiter(item.amount_estimated_eu_funding)} #{h(item.currency)}" : ''
+              - else
+                %i{:style=>"color:grey;"}= item.amount_estimated_eu_funding ? "#{number_with_delimiter(item.amount_estimated_eu_funding)} #{h(item.currency)}" : ''
+                %br
+                %small
+                  %i{:style=>"color:grey;"}estimated
               - if item.currency != 'EUR'
                 %br
                 %span.euro_conversion= item.amount_estimated_eu_funding_in_euro ? "#{number_with_delimiter(item.amount_estimated_eu_funding_in_euro)} EUR" : ''
+              %br
+              - if item.fund_file.uri_to_landing_page
+                = link_to('data source', h(item.fund_file.uri_to_landing_page) )
+              - elsif item.fund_file.direct_link
+                = link_to('data source', h(item.fund_file.direct_link) )
             %td= h item.fund_name.to_s.strip
   #pagination
     %p.pagination

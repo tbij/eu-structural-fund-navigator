@@ -295,9 +295,11 @@ describe DataLoader do
   end
 
   it 'should load beneficiary_classification CSV' do
-    classification = beneficiary_classification['A4E Ltd'].first
+    name = 'A4E Ltd'
+    canonical_name = @loader.canonical_name(name)
+    classification = beneficiary_classification[canonical_name].first
     classification.class.name.should == 'Morph::BeneficiaryClassification'
-    classification.beneficiary.should == 'A4E Ltd'
+    classification.beneficiary.should == name
     classification.category.should == 'Company'
     classification.sector_code.should == '9111 - Activities of business and employers organisations'
     classification.parent_company_or_owner.should == 'A4E'
@@ -308,9 +310,11 @@ describe DataLoader do
   it 'should load normalized_beneficiaries CSV' do
     normalized = normalized_beneficiaries
 
-    value = normalized['IBM Global Services Delivery Centre Polska Sp. z o.o.'].first
+    name = 'IBM Global Services Delivery Centre Polska Tytuł Sp. z o.o.'
+    canonical_name = @loader.canonical_name(name)
+    value = normalized[canonical_name].first
     value.class.name.should == 'Morph::NormalizedBeneficiary'
-    value.beneficiary.should == 'IBM Global Services Delivery Centre Polska Sp. z o.o.'
+    value.beneficiary.should == name
     value.normalized_beneficiary.should == 'IBM'
   end
 
@@ -431,10 +435,48 @@ describe DataLoader do
     @loader.convert_value('877.484').should == 877484
   end
 
+  describe 'when asked for canonical name' do
+    def check_it name, expected
+      @loader.canonical_name(name).should == expected
+    end
+    it 'should not raise illegal sequence error' do
+      bad_data = 'City & County of Swansea Joint Sponsorship � City & County'
+      expected = 'city and county of swansea joint sponsorship city and county'
+      check_it bad_data, expected
+    end
+    it 'should replace bad chars' do
+      bad_data = "Chambre régionale de commerce et dindustrie de Paris et d'Île-de-France"
+      expected = "chambre regionale de commerce et dindustrie de paris et diledefrance"
+      check_it bad_data, expected
+    end
+    it 'should ignore punctuation' do
+      name = %Q|"Związek Międzygminny „Puszcza Zielonka”|
+      check_it name, "zwiazek miedzygminny puszcza zielonka"
+    end
+    it 'should keep digits and remove double spaces' do
+      name = '30807506 - ŠPÚ'
+      check_it name, '30807506 spu'
+    end
+  end
+
   describe 'when asked to normalize beneficiaries' do
     it 'should add normalized name' do
       normalized_beneficiaries
-      record = mock('record', :beneficiary => 'IBM Global Services Delivery Centre Polska Sp. z o.o.')
+      record = mock('record', :beneficiary => 'IBM Global Services Delivery Centre Polska Tytuł Sp. z o.o.')
+      records = [record]
+      record.should_receive(:normalized_beneficiary=).with('IBM')
+      @loader.normalize_beneficiaries(records).should == records
+    end
+    it 'should add normalized name ignoring case' do
+      normalized_beneficiaries
+      record = mock('record', :beneficiary => 'IbM Global Services Delivery Centre Polska Tytuł Sp. z o.o.')
+      records = [record]
+      record.should_receive(:normalized_beneficiary=).with('IBM')
+      @loader.normalize_beneficiaries(records).should == records
+    end
+    it 'should add normalized name by translit to ascii characters' do
+      normalized_beneficiaries
+      record = mock('record', :beneficiary => 'IBM Global Services Delivery Centre Polska Tytul Sp. z o.o.')
       records = [record]
       record.should_receive(:normalized_beneficiary=).with('IBM')
       @loader.normalize_beneficiaries(records).should == records
@@ -504,7 +546,7 @@ A4E Ltd ,Company ,9111 - Activities of business and employers organisations ,A4E
 
   def normalized_beneficiaries_csv
 %Q|beneficiary,normalized_beneficiary
-IBM Global Services Delivery Centre Polska Sp. z o.o. ,IBM |
+IBM Global Services Delivery Centre Polska Tytuł Sp. z o.o. ,IBM |
   end
 
   def master_csv

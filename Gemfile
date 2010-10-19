@@ -15,6 +15,7 @@ gem 'sunspot_rails'
 gem 'will_paginate'
 
 group :development do
+  gem 'wirble'
   gem 'google-translate'
 end
 group :production do

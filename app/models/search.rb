@@ -23,7 +23,7 @@ class Search
   def countries
     summarize(@result_sets, :fund_country)
   end
-  
+
   def regions
     summarize(@result_sets, :fund_region)
   end
@@ -31,11 +31,11 @@ class Search
   def split_terms(query)
     query.include?(' OR ') ? query.split(' OR ').compact.map(&:strip).map(&:downcase).uniq : translations(query)
   end
-  
+
   def joined_terms
     @terms.join(' OR ')
   end
-  
+
   def min_eu_amount_in_euros
     if @total == 0
       0
@@ -78,12 +78,12 @@ class Search
   def translate_and_search query
     @terms = split_terms(query)
     @result_sets = @terms.collect { |term| do_search(term) }
-    
+
     # answer = {}
     # @terms.each_with_index {|e,i| answer[@terms[i]] = @result_sets[i].results.collect(&:beneficiary) }
     @results = []
     @total = 0
-    
+
     require 'will_paginate'
     @result_sets.each do |result|
       @total += result.total
@@ -144,7 +144,8 @@ class Search
       begin
         translator.translate('en', code, term)
       rescue Exception => e
-        logger.error("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
+        # logger.error("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
+        puts("#{e.class.name} #{e.to_s} #{e.backtrace.join("\n")}")
         nil
       end
     end.compact
@@ -160,7 +161,7 @@ class Search
       Struct::Facet.new value, count
     end
   end
-  
+
   LANGUAGE_CODES = [
       'bg', # BULGARIA
       'cs', # CZECH REPUBLIC
