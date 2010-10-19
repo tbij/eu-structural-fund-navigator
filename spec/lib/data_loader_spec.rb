@@ -228,9 +228,13 @@ describe DataLoader do
 
       @loader.should_receive(:load_a_fund_file).with(@fund_file, @saved_fund_file).and_return records
 
-      @loader.should_receive(:save_record).with(record, nil, @saved_fund_file)
-      @loader.should_receive(:save_record).with(record2, nil, @saved_fund_file)
-      @loader.should_receive(:save_record).with(record3, nil, @saved_fund_file)
+      fund_item = mock('fund_item')
+      fund_item1 = mock('fund_item1')
+      fund_item2 = mock('fund_item2')
+      @loader.should_receive(:save_a_record).with(record, nil, @saved_fund_file).and_return fund_item
+      @loader.should_receive(:save_a_record).with(record2, nil, @saved_fund_file).and_return fund_item1
+      @loader.should_receive(:save_a_record).with(record3, nil, @saved_fund_file).and_return fund_item2
+      @loader.should_receive(:save_to_csv).with([fund_item, fund_item1, fund_item2], @saved_fund_file, true)
       @loader.populate_database(fund_files, fund_files_with_data)
     end
 
@@ -240,12 +244,12 @@ describe DataLoader do
       model = mock('FundItemClass')
       @loader.should_receive(:record_model).and_return model
       model.should_receive(:create).with(morph_attributes).and_return mock('item')
-      @loader.save_record record
+      @loader.save_a_record record
     end
 
     it 'should prevent saving record if beneficiary and project title missing' do
       record = mock('record')
-      lambda { @loader.save_record record }.should raise_exception
+      lambda { @loader.save_a_record record }.should raise_exception
     end
   end
 
@@ -494,12 +498,12 @@ describe DataLoader do
 
   def beneficiary_classification_csv
 %Q|beneficiary,category,sector_code,parent_company_or_owner,trade_description,ft_category
-A4E Ltd,Company,9111 - Activities of business and employers organisations,A4E,Welfare to Work,Welfare to work|
+A4E Ltd ,Company ,9111 - Activities of business and employers organisations ,A4E ,Welfare to Work ,Welfare to work |
   end
 
   def normalized_beneficiaries_csv
 %Q|beneficiary,normalized_beneficiary
-IBM Global Services Delivery Centre Polska Sp. z o.o.,IBM|
+IBM Global Services Delivery Centre Polska Sp. z o.o. ,IBM |
   end
 
   def master_csv

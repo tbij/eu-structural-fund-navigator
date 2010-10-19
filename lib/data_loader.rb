@@ -11,6 +11,8 @@ end
 
 class DataLoader
 
+  ALL_COUNTRIES_CSV = "#{RAILS_ROOT}/public/all_countries.csv"
+
   def get_fields file_name
     fund_files   = load_fund_files(file_name)
     attributes   = fund_files.first.class.morph_attributes
@@ -75,7 +77,7 @@ class DataLoader
           if records
             previous_record = nil
             records.each do |record|
-              save_record record, previous_record, saved_fund_file
+              fund_item = save_a_record(record, previous_record, saved_fund_file)
               previous_record = record
             end
             puts "reloaded #{records.size} records"
@@ -345,12 +347,19 @@ end|
   end
 
   def populate_database fund_files, files_with_data
+    File.open(ALL_COUNTRIES_CSV, 'w') do |f|
+      # Overwrites the file if the file exists. If the file does not exist, creates a new file for writing
+    end unless RAILS_ENV == 'test'
+
+    is_first_fund_file = true
+
     fund_files.each do |fund_file|
       saved_fund_file = save_fund_file(fund_file)
       if saved_fund_file && files_with_data.include?(fund_file)
         records = load_a_fund_file(fund_file, saved_fund_file)
         if records
-          save_records records, saved_fund_file
+          save_records records, saved_fund_file, is_first_fund_file
+          is_first_fund_file = false
         else
           log_error saved_fund_file, "ERROR: no records for #{fund_file.parsed_data_file}"
         end
@@ -358,12 +367,22 @@ end|
     end
   end
 
-  def save_records records, saved_fund_file
+  def save_to_csv fund_items, saved_fund_file, include_header
+    csv = CsvHelper.get_csv(fund_items, [saved_fund_file], include_header)
+    File.open(ALL_COUNTRIES_CSV,'a') do |file|
+      file.write(csv.strip)
+      file.write("\n")
+    end
+  end
+
+  def save_records records, saved_fund_file, is_first_fund_file
     begin
-      records.each do |record|
-        save_record record, nil, saved_fund_file
+      fund_items = records.collect do |record|
+        save_a_record(record, nil, saved_fund_file)
       end
+      save_to_csv(fund_items, saved_fund_file, is_first_fund_file)
     rescue Exception => e
+      puts e.to_s
       log_exception saved_fund_file, e
     end
   end
@@ -455,7 +474,7 @@ end|
     !record.respond_to?(symbol) || record.send(symbol).blank?
   end
 
-  def save_record record, previous_record=nil, saved_fund_file=nil
+  def save_a_record record, previous_record=nil, saved_fund_file=nil
     if attribute_missing?(:beneficiary, record) && attribute_missing?(:project_title, record)
       log_previous = previous_record ? "\nprevious_record: #{previous_record.inspect}" : ''
       log_fields = 'no saved_fund_file'
@@ -525,6 +544,10 @@ end|
     unless @normalized_beneficiaries
       csv = IO.read(file_name)
       normalized = Morph.from_csv(csv, 'NormalizedBeneficiary')
+      normalized.each do |n|
+        n.beneficiary            = n.beneficiary.strip if n.beneficiary
+        n.normalized_beneficiary = n.normalized_beneficiary.strip if n.normalized_beneficiary
+      end
       @normalized_beneficiaries = normalized.group_by(&:beneficiary)
     end
     @normalized_beneficiaries
@@ -534,6 +557,14 @@ end|
     unless @beneficiary_classification
       csv = IO.read(file_name)
       classification = @beneficiary_classification = Morph.from_csv(csv, 'BeneficiaryClassification')
+      classification.each do |c|
+        c.beneficiary             = c.beneficiary.strip if c.beneficiary
+        c.category                = c.category.strip if c.respond_to?(:category) && c.category
+        c.sector_code             = c.sector_code.strip if c.respond_to?(:sector_code) && c.sector_code
+        c.parent_company_or_owner = c.parent_company_or_owner.strip if c.respond_to?(:parent_company_or_owner) && c.parent_company_or_owner
+        c.trade_description       = c.trade_description.strip if c.respond_to?(:trade_description) && c.trade_description
+        c.ft_category             = c.ft_category.strip if c.respond_to?(:ft_category) && c.ft_category
+      end
       @beneficiary_classification = classification.group_by(&:beneficiary)
     end
     @beneficiary_classification
