@@ -183,7 +183,7 @@ class ApplicationController < ActionController::Base
   end
 
   def eufunds_csv
-    path = "#{DataLoader.eufunds_csv}.zip"
+    path = "#{RAILS_ROOT}/public/eufunds.csv.zip"
     send_file path, :type => "text/plain", :filename=>"eufunds.csv.zip", :disposition => 'attachment'
   end
 
