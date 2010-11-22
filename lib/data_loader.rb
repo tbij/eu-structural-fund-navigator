@@ -498,16 +498,20 @@ end|
       raise "cannot load item without a beneficiary or project title: #{record.inspect} #{log_previous} #{log_fields}"
     end
     attributes = record.morph_attributes
-    if saved_fund_file && saved_fund_file.respond_to?(:currency)
-      attributes = {:currency => saved_fund_file.currency}.merge(attributes)
+
+    if attributes[:currency].blank? && saved_fund_file && saved_fund_file.respond_to?(:currency)
+      attributes = attributes.merge({:currency => saved_fund_file.currency})
     end
+
     if attributes[:currency].blank? && saved_fund_file.type == 'NationalFundFile' && saved_fund_file.country
       currency = default_currency(saved_fund_file.country)
       attributes[:currency] = currency
     end
+
     if attributes[:currency].blank?
       raise "fund item currency should not be blank: #{attributes.inspect} ... #{saved_fund_file.inspect}"
     end
+
     fund_item = record_model.create attributes
     fund_item
   end
@@ -705,9 +709,10 @@ end|
 
   def get_currency record, saved_fund_file
     attributes = record.morph_attributes
-    if saved_fund_file && saved_fund_file.respond_to?(:currency)
-      attributes = {:currency => saved_fund_file.currency}.merge(attributes)
+    if attributes[:currency].blank? && saved_fund_file && saved_fund_file.respond_to?(:currency)
+      attributes = attributes.merge({:currency => saved_fund_file.currency})
     end
+
     if attributes[:currency].blank? && saved_fund_file.type == 'NationalFundFile' && saved_fund_file.country
       currency = default_currency(saved_fund_file.country)
       attributes[:currency] = currency
