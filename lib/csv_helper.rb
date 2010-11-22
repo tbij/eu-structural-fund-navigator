@@ -93,7 +93,20 @@ class CsvHelper
       items.each do |item|
         fund_file = item.fund_file
         program = item.european_fund_name.blank? ? fund_file.program : item.european_fund_name
-        data = fund_fields.collect {|field| fund_file.send(field)} + [program] + item_fields.collect { |field| item.send(field) } + fund_fields_suffix.collect {|field| fund_file.send(field)}
+        data = fund_fields.collect do |field|
+          fund_file.send(field)
+        end
+        data += [program]
+        data += item_fields.collect do |field|
+          begin
+            item.send(field)
+          rescue NoMethodError
+            nil
+          end
+        end
+        data += fund_fields_suffix.collect do |field|
+          fund_file.send(field)
+        end
         csv << data
       end
     end

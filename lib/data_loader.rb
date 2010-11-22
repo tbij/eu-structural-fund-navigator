@@ -166,7 +166,11 @@ class DataLoader
 =end
 
   searchable :auto_index => false do
-    text :beneficiary, :project_title, :description, :subcontractor
+    if respond_to?(:subcontractor)
+      text :beneficiary, :project_title, :description, :subcontractor
+    else
+      text :beneficiary, :project_title, :description
+    end
 
     string :eu_fund_name do
       fund_name
@@ -195,7 +199,7 @@ class DataLoader
 
   def set_year
     if year.blank?
-      if !date.blank?
+      if respond_to?(:date) && !date.blank?
         begin
           the_date = Date.parse date
           self.year = the_date.year if the_date
@@ -404,9 +408,9 @@ end|
       fund_file.direct_link_to_pdf
     elsif !fund_file.direct_link_to_excel.blank?
       fund_file.direct_link_to_excel
-    elsif !fund_file.direct_link_to_html.blank?
+    elsif fund_file.respond_to?(:direct_link_to_html) && !fund_file.direct_link_to_html.blank?
       fund_file.direct_link_to_html
-    elsif !fund_file.direct_link_to_doc.blank?
+    elsif fund_file.respond_to?(:direct_link_to_doc) && !fund_file.direct_link_to_doc.blank?
       fund_file.direct_link_to_doc
     else
       fund_file.uri_to_landing_page
@@ -428,7 +432,7 @@ end|
         :direct_link => direct_link,
         :uri_to_landing_page => fund_file.uri_to_landing_page,
         :max_percent_funded_by_eu_funds => fund_file.respond_to?(:percent_funded_by_eu_funds_maximum) ? fund_file.percent_funded_by_eu_funds_maximum : nil,
-        :min_percent_funded_by_eu_funds => fund_file.percent_funded_by_eu_funds_minimum,
+        :min_percent_funded_by_eu_funds => fund_file.respond_to?(:percent_funded_by_eu_funds_minimum) ? fund_file.percent_funded_by_eu_funds_minimum : nil,
         :last_updated => fund_file.last_updated,
         :next_update => fund_file.next_update
     }
@@ -556,6 +560,19 @@ end|
     fx_rates
   end
 
+  def silent_convert_encoding content
+    charset = CMess::GuessEncoding::Automatic.guess(content)
+    case charset
+      when 'UNKNOWN'
+      when 'UTF-8'
+      when 'ASCII'
+      else
+        puts "converting from #{charset} to UTF-8"
+        content = Iconv.conv('utf-8', charset, content)
+    end
+    content
+  end
+
   @@converter = Iconv.new('ASCII//TRANSLIT', 'UTF-8')
 
   def canonical_name name
@@ -563,7 +580,20 @@ end|
       name = name.gsub('�','')
       name.gsub!('','')
       name.gsub!(' & ',' and ')
-      @@converter.iconv(name).downcase.gsub(/[^a-z0-9 ]/,'').gsub(/\s\s+/,' ').strip
+
+      # name = silent_convert_encoding(name)
+      # charset = CMess::GuessEncoding::Automatic.guess(content)
+      # if charset == 'UTF-8'
+        cleaned = @@converter.iconv(name).downcase.gsub(/[^a-z0-9 ]/,'').gsub(/\s\s+/,' ').strip
+        # if cleaned.blank?
+          # name
+        # else
+          # cleaned
+        # end
+      # else
+        # raise charset
+        # name
+      # end
     rescue
       name
     end

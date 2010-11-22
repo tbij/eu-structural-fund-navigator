@@ -457,6 +457,14 @@ describe DataLoader do
       name = '30807506 - ŠPÚ'
       check_it name, '30807506 spu'
     end
+    it 'should leave greek names untouched' do
+      name = 'ΧΑΡΙΤΑΚΗΣ Ο\316\225'
+      check_it name, name
+    end
+    it 'should leave cyrillic names untouched' do
+      name = 'Агенция по заетостта, главна дирекция "Услуги по заетостта"'
+      check_it name, name
+    end
   end
 
   describe 'when asked to normalize beneficiaries' do
